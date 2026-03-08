@@ -74,8 +74,8 @@
           <div class="value" x-text="'#' + stats.avg_rank"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Best Global</div>
-          <div class="value" x-text="'#' + stats.best_global_ranking"></div>
+          <div class="label">Wins</div>
+          <div class="value" x-text="stats.wins_count"></div>
         </div>
         <div class="stat-card">
           <div class="label">Best Score</div>
@@ -85,6 +85,7 @@
         <div class="stat-card">
           <div class="label">Top 500 Finishes</div>
           <div class="value" x-text="stats.top500_count"></div>
+          <div class="sub" x-text="pct(stats.top500_count, stats.total_contests)"></div>
         </div>
       </div>
     </template>

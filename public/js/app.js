@@ -2,10 +2,10 @@ const CHART_COLORS = { u1: '#f89f1b', u2: '#00b8d9' };
 
 function getApexBase() {
   const light = document.body.classList.contains('light');
-  const bg      = light ? '#ffffff' : '#1a1d27';
-  const fg      = light ? '#5a6080' : '#7a7f9a';
-  const border  = light ? '#cdd1e4' : '#2e3250';
-  const legend  = light ? '#1a1d27' : '#e4e6f0';
+  const bg = light ? '#ffffff' : '#1a1d27';
+  const fg = light ? '#5a6080' : '#7a7f9a';
+  const border = light ? '#cdd1e4' : '#2e3250';
+  const legend = light ? '#1a1d27' : '#e4e6f0';
   return {
     chart: { background: bg, foreColor: fg, toolbar: { show: true, tools: { zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } }, animations: { enabled: true, speed: 400 } },
     grid: { borderColor: border, strokeDashArray: 4 },
@@ -27,16 +27,16 @@ function historyToSeries(history, field = 'rank') {
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
-  const light  = document.body.classList.contains('light');
-  const bg     = light ? '#ffffff' : '#1a1d27';
+  const light = document.body.classList.contains('light');
+  const bg = light ? '#ffffff' : '#1a1d27';
   const border = light ? '#cdd1e4' : '#2e3250';
-  const text   = light ? '#1a1d27' : '#e4e6f0';
-  const muted  = light ? '#5a6080' : '#7a7f9a';
+  const text = light ? '#1a1d27' : '#e4e6f0';
+  const muted = light ? '#5a6080' : '#7a7f9a';
 
-  const s     = w.config.series[seriesIndex];
+  const s = w.config.series[seriesIndex];
   const point = s.data[dataPointIndex];
-  const rank  = series[seriesIndex][dataPointIndex];
-  const date  = new Date(point.x).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const rank = series[seriesIndex][dataPointIndex];
+  const date = new Date(point.x).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   const row = (label, value) =>
     `<div style="display:flex;justify-content:space-between;gap:16px;padding:2px 0">
@@ -49,8 +49,8 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
       <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
       <span style="color:${muted};font-size:11px">${date}</span>
     </div>
-    ${row('Contest Rank:', `#${rank}`)}
     ${row('Contest:', point.contest_slug || '—')}
+    ${row('Rank:', `#${rank}`)}
   </div>`;
 }
 

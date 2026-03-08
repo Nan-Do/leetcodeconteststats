@@ -126,7 +126,6 @@ document.addEventListener('alpine:init', () => {
 
     renderCharts() {
       if (this.chart) { this.chart.destroy(); this.chart = null; }
-      if (this.globalChart) { this.globalChart.destroy(); this.globalChart = null; }
 
       const base = getApexBase();
       this.chart = new ApexCharts(document.querySelector('#rankChart'), {
@@ -137,15 +136,6 @@ document.addEventListener('alpine:init', () => {
         tooltip: { ...base.tooltip, custom: rankTooltipHtml },
       });
       this.chart.render();
-
-      this.globalChart = new ApexCharts(document.querySelector('#globalChart'), {
-        ...base,
-        chart: { ...base.chart, type: 'line', height: 280 },
-        series: [{ name: 'Global Ranking', data: historyToSeries(this.history, 'global_ranking'), color: CHART_COLORS.u2 }],
-        yaxis: { ...base.yaxis, title: { text: 'Global Ranking', style: { color: base.chart.foreColor } } },
-        tooltip: { ...base.tooltip, y: { formatter: v => `#${Math.round(v)}` } },
-      });
-      this.globalChart.render();
     },
 
     formatDate,
@@ -161,7 +151,6 @@ document.addEventListener('alpine:init', () => {
     loading: false, error: null,
     data: null,
     chart: null,
-    globalChart: null,
     debounceTimer1: null, debounceTimer2: null,
 
     init() {
@@ -220,7 +209,6 @@ document.addEventListener('alpine:init', () => {
 
     renderCharts() {
       if (this.chart) { this.chart.destroy(); this.chart = null; }
-      if (this.globalChart) { this.globalChart.destroy(); this.globalChart = null; }
 
       const base = getApexBase();
       const s1 = { name: this.data.user1.stats.username, data: historyToSeries(this.data.user1.history, 'rank'), color: CHART_COLORS.u1 };
@@ -233,17 +221,6 @@ document.addEventListener('alpine:init', () => {
         tooltip: { ...base.tooltip, custom: rankTooltipHtml },
       });
       this.chart.render();
-
-      const g1 = { name: this.data.user1.stats.username, data: historyToSeries(this.data.user1.history, 'global_ranking'), color: CHART_COLORS.u1 };
-      const g2 = { name: this.data.user2.stats.username, data: historyToSeries(this.data.user2.history, 'global_ranking'), color: CHART_COLORS.u2 };
-      this.globalChart = new ApexCharts(document.querySelector('#compareGlobalChart'), {
-        ...base,
-        chart: { ...base.chart, type: 'line', height: 300 },
-        series: [g1, g2],
-        yaxis: { ...base.yaxis, title: { text: 'Global Ranking', style: { color: base.chart.foreColor } } },
-        tooltip: { ...base.tooltip, y: { formatter: v => `#${Math.round(v)}` } },
-      });
-      this.globalChart.render();
     },
   }));
 

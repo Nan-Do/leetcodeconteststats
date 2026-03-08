@@ -33,7 +33,7 @@
         <div class="field pos-relative">
           <label>Username</label>
           <input type="text" x-model="query" @input="onInput()" placeholder="e.g. tourist" autocomplete="off" @keydown.escape="suggestions = []" />
-          <ul class="autocomplete-list" x-show="suggestions.length > 0" @click.outside="suggestions = []">
+          <ul class="autocomplete-list" style="display:none" x-show="suggestions.length > 0" @click.outside="suggestions = []">
             <template x-for="u in suggestions" :key="u.user_slug + u.data_region">
               <li @click="selectSuggestion(u)">
                 <span x-text="u.username"></span>
@@ -42,16 +42,19 @@
             </template>
           </ul>
         </div>
-        <button class="btn btn-primary" @click="load()" :disabled="query.length < 2 || loading">
-          <span x-show="!loading">Load Stats</span>
-          <span x-show="loading">Loading...</span>
-        </button>
+        <div class="field-btn-wrap">
+          <label class="label-spacer" aria-hidden="true">Username</label>
+          <button class="btn btn-primary" @click="load()" :disabled="query.length < 2 || loading">
+            <span x-show="!loading">Load Stats</span>
+            <span style="display:none" x-show="loading">Loading...</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="error-msg" x-show="error" x-text="error"></div>
+    <div class="error-msg" style="display:none" x-show="error" x-text="error"></div>
 
-    <div class="loading" x-show="loading">
+    <div class="loading" style="display:none" x-show="loading">
       <div class="spinner"></div> Fetching data...
     </div>
 
@@ -86,7 +89,7 @@
       </div>
     </template>
 
-    <div x-show="stats && !loading">
+    <div style="display:none" x-show="stats && !loading">
       <div class="chart-card">
         <h3>Contest Rank Over Time</h3>
         <div id="rankChart"></div>
@@ -101,7 +104,7 @@
   </div>
 
   <!-- ── Compare ─────────────────────────────────── -->
-  <div x-data="compareUsers()" x-show="activeTab === 'compare'" @tab.window="activeTab = $event.detail">
+  <div style="display:none" x-data="compareUsers()" x-show="activeTab === 'compare'" @tab.window="activeTab = $event.detail">
 
     <div class="search-section">
       <h2>Compare Two Users</h2>
@@ -109,7 +112,7 @@
         <div class="field pos-relative">
           <label style="color: #f89f1b">User 1</label>
           <input type="text" x-model="query1" @input="onInput1()" placeholder="First user" autocomplete="off" @keydown.escape="suggestions1 = []" />
-          <ul class="autocomplete-list" x-show="suggestions1.length > 0" @click.outside="suggestions1 = []">
+          <ul class="autocomplete-list" style="display:none" x-show="suggestions1.length > 0" @click.outside="suggestions1 = []">
             <template x-for="u in suggestions1" :key="u.user_slug + u.data_region">
               <li @click="selectSuggestion1(u)">
                 <span x-text="u.username"></span>
@@ -121,7 +124,7 @@
         <div class="field pos-relative">
           <label style="color: #00b8d9">User 2</label>
           <input type="text" x-model="query2" @input="onInput2()" placeholder="Second user" autocomplete="off" @keydown.escape="suggestions2 = []" />
-          <ul class="autocomplete-list" x-show="suggestions2.length > 0" @click.outside="suggestions2 = []">
+          <ul class="autocomplete-list" style="display:none" x-show="suggestions2.length > 0" @click.outside="suggestions2 = []">
             <template x-for="u in suggestions2" :key="u.user_slug + u.data_region">
               <li @click="selectSuggestion2(u)">
                 <span x-text="u.username"></span>
@@ -130,15 +133,18 @@
             </template>
           </ul>
         </div>
-        <button class="btn btn-primary" @click="compare()" :disabled="query1.length < 2 || query2.length < 2 || loading">
-          <span x-show="!loading">Compare</span>
-          <span x-show="loading">Loading...</span>
-        </button>
+        <div class="field-btn-wrap">
+          <label class="label-spacer" aria-hidden="true">User 1</label>
+          <button class="btn btn-primary" @click="compare()" :disabled="query1.length < 2 || query2.length < 2 || loading">
+            <span x-show="!loading">Compare</span>
+            <span style="display:none" x-show="loading">Loading...</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="error-msg" x-show="error" x-text="error"></div>
-    <div class="loading" x-show="loading"><div class="spinner"></div> Fetching data...</div>
+    <div class="error-msg" style="display:none" x-show="error" x-text="error"></div>
+    <div class="loading" style="display:none" x-show="loading"><div class="spinner"></div> Fetching data...</div>
 
     <template x-if="data && !loading">
       <div class="compare-stats">
@@ -163,14 +169,14 @@
       </div>
     </template>
 
-    <div x-show="data && !loading">
+    <div style="display:none" x-show="data && !loading">
       <div class="chart-card">
         <h3>Contest Rank Comparison</h3>
         <div id="compareRankChart"></div>
       </div>
     </div>
 
-    <div class="empty-state" x-show="!data && !loading && !error">
+    <div class="empty-state" style="display:none" x-show="!data && !loading && !error">
       <div class="icon">⚔️</div>
       <p>Select two users to compare their performance</p>
     </div>

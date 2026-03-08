@@ -13,6 +13,16 @@
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
 }
 
+body.light {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface2: #eaecf5;
+  --border: #cdd1e4;
+  --text: #1a1d27;
+  --text-muted: #5a6080;
+  --shadow: 0 4px 24px rgba(0,0,0,0.1);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -59,6 +69,9 @@ header .logo span { color: var(--text); }
 
 .tab-btn:hover { border-color: var(--accent); color: var(--text); }
 .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+.theme-divider { width: 1px; background: var(--border); align-self: stretch; margin: 0 0.25rem; }
+.theme-toggle { min-width: 6rem; }
 
 main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 

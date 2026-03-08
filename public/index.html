@@ -5,23 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LeetCode Contest Stats</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <script>if(localStorage.getItem('theme')==='light')document.body.classList.add('light');</script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script defer src="/js/app.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
 
 <header>
   <div class="logo">LC<span>Stats</span></div>
-  <div class="tabs" x-data="{ tab: 'single' }" id="tabRoot">
+  <div class="tabs" x-data="{ tab: 'single', light: localStorage.getItem('theme') === 'light' }" id="tabRoot">
     <button class="tab-btn" :class="{ active: tab === 'single' }" @click="tab = 'single'; window.dispatchEvent(new CustomEvent('tab', { detail: 'single' }))">Single User</button>
     <button class="tab-btn" :class="{ active: tab === 'compare' }" @click="tab = 'compare'; window.dispatchEvent(new CustomEvent('tab', { detail: 'compare' }))">Compare</button>
+    <div class="theme-divider"></div>
+    <button class="tab-btn theme-toggle" @click="light = !light; document.body.classList.toggle('light', light); localStorage.setItem('theme', light ? 'light' : 'dark'); window.dispatchEvent(new CustomEvent('themechange'))" x-text="light ? '🌙 Dark' : '☀ Bright'"></button>
   </div>
 </header>
 
 <main>
 
   <!-- ── Single User ─────────────────────────────── -->
-  <div x-data="singleUser()" x-show="activeTab === 'single'" @tab.window="activeTab = $event.detail" x-init="activeTab = 'single'">
+  <div x-data="singleUser()" x-show="activeTab === 'single'" @tab.window="activeTab = $event.detail">
 
     <div class="search-section">
       <h2>Search User</h2>
@@ -38,7 +42,7 @@
             </template>
           </ul>
         </div>
-        <button class="btn btn-primary" @click="load()" :disabled="!selectedUser || loading">
+        <button class="btn btn-primary" @click="load()" :disabled="query.length < 2 || loading">
           <span x-show="!loading">Load Stats</span>
           <span x-show="loading">Loading...</span>
         </button>
@@ -52,47 +56,46 @@
     </div>
 
     <template x-if="stats && !loading">
-      <div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="label">Contests</div>
-            <div class="value" x-text="stats.total_contests"></div>
-          </div>
-          <div class="stat-card">
-            <div class="label">Best Rank</div>
-            <div class="value" x-text="'#' + stats.best_rank"></div>
-            <div class="sub" x-text="'Top ' + pct(stats.best_rank, history[history.findIndex(h => h.rank === stats.best_rank)]?.num_participants)"></div>
-          </div>
-          <div class="stat-card">
-            <div class="label">Avg Rank</div>
-            <div class="value" x-text="'#' + stats.avg_rank"></div>
-          </div>
-          <div class="stat-card">
-            <div class="label">Best Global</div>
-            <div class="value" x-text="'#' + stats.best_global_ranking"></div>
-          </div>
-          <div class="stat-card">
-            <div class="label">Best Score</div>
-            <div class="value" x-text="stats.best_score"></div>
-            <div class="sub" x-text="'Avg: ' + stats.avg_score"></div>
-          </div>
-          <div class="stat-card">
-            <div class="label">Top 500 Finishes</div>
-            <div class="value" x-text="stats.top500_count"></div>
-          </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Contests</div>
+          <div class="value" x-text="stats.total_contests"></div>
         </div>
-
-        <div class="chart-card">
-          <h3>Contest Rank Over Time</h3>
-          <div id="rankChart"></div>
+        <div class="stat-card">
+          <div class="label">Best Rank</div>
+          <div class="value" x-text="'#' + stats.best_rank"></div>
+          <div class="sub" x-text="'Top ' + pct(stats.best_rank, history[history.findIndex(h => h.rank === stats.best_rank)]?.num_participants)"></div>
         </div>
-
-        <div class="chart-card">
-          <h3>Global Ranking Over Time</h3>
-          <div id="globalChart"></div>
+        <div class="stat-card">
+          <div class="label">Avg Rank</div>
+          <div class="value" x-text="'#' + stats.avg_rank"></div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Best Global</div>
+          <div class="value" x-text="'#' + stats.best_global_ranking"></div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Best Score</div>
+          <div class="value" x-text="stats.best_score"></div>
+          <div class="sub" x-text="'Avg: ' + stats.avg_score"></div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Top 500 Finishes</div>
+          <div class="value" x-text="stats.top500_count"></div>
         </div>
       </div>
     </template>
+
+    <div x-show="stats && !loading">
+      <div class="chart-card">
+        <h3>Contest Rank Over Time</h3>
+        <div id="rankChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Global Ranking Over Time</h3>
+        <div id="globalChart"></div>
+      </div>
+    </div>
 
     <div class="empty-state" x-show="!stats && !loading && !error">
       <div class="icon">📊</div>
@@ -102,7 +105,7 @@
   </div>
 
   <!-- ── Compare ─────────────────────────────────── -->
-  <div x-data="compareUsers()" x-show="activeTab === 'compare'" @tab.window="activeTab = $event.detail" x-init="activeTab = 'single'">
+  <div x-data="compareUsers()" x-show="activeTab === 'compare'" @tab.window="activeTab = $event.detail">
 
     <div class="search-section">
       <h2>Compare Two Users</h2>
@@ -131,7 +134,7 @@
             </template>
           </ul>
         </div>
-        <button class="btn btn-primary" @click="compare()" :disabled="!user1 || !user2 || loading">
+        <button class="btn btn-primary" @click="compare()" :disabled="query1.length < 2 || query2.length < 2 || loading">
           <span x-show="!loading">Compare</span>
           <span x-show="loading">Loading...</span>
         </button>
@@ -142,39 +145,38 @@
     <div class="loading" x-show="loading"><div class="spinner"></div> Fetching data...</div>
 
     <template x-if="data && !loading">
-      <div>
-        <div class="compare-stats">
-          <div class="compare-col u1">
-            <div class="col-header" x-text="data.user1.stats.username"></div>
-            <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="data.user1.stats.total_contests"></span></div>
-            <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user1.stats.best_rank"></span></div>
-            <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user1.stats.avg_rank"></span></div>
-            <div class="stat-row"><span class="skey">Best Global</span><span class="sval" x-text="'#' + data.user1.stats.best_global_ranking"></span></div>
-            <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user1.stats.best_score"></span></div>
-            <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user1.stats.top500_count"></span></div>
-          </div>
-          <div class="compare-col u2">
-            <div class="col-header" x-text="data.user2.stats.username"></div>
-            <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="data.user2.stats.total_contests"></span></div>
-            <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user2.stats.best_rank"></span></div>
-            <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user2.stats.avg_rank"></span></div>
-            <div class="stat-row"><span class="skey">Best Global</span><span class="sval" x-text="'#' + data.user2.stats.best_global_ranking"></span></div>
-            <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user2.stats.best_score"></span></div>
-            <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user2.stats.top500_count"></span></div>
-          </div>
+      <div class="compare-stats">
+        <div class="compare-col u1">
+          <div class="col-header" x-text="data.user1.stats.username"></div>
+          <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="data.user1.stats.total_contests"></span></div>
+          <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user1.stats.best_rank"></span></div>
+          <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user1.stats.avg_rank"></span></div>
+          <div class="stat-row"><span class="skey">Best Global</span><span class="sval" x-text="'#' + data.user1.stats.best_global_ranking"></span></div>
+          <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user1.stats.best_score"></span></div>
+          <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user1.stats.top500_count"></span></div>
         </div>
-
-        <div class="chart-card">
-          <h3>Contest Rank Comparison</h3>
-          <div id="compareRankChart"></div>
-        </div>
-
-        <div class="chart-card">
-          <h3>Global Ranking Comparison</h3>
-          <div id="compareGlobalChart"></div>
+        <div class="compare-col u2">
+          <div class="col-header" x-text="data.user2.stats.username"></div>
+          <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="data.user2.stats.total_contests"></span></div>
+          <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user2.stats.best_rank"></span></div>
+          <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user2.stats.avg_rank"></span></div>
+          <div class="stat-row"><span class="skey">Best Global</span><span class="sval" x-text="'#' + data.user2.stats.best_global_ranking"></span></div>
+          <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user2.stats.best_score"></span></div>
+          <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user2.stats.top500_count"></span></div>
         </div>
       </div>
     </template>
+
+    <div x-show="data && !loading">
+      <div class="chart-card">
+        <h3>Contest Rank Comparison</h3>
+        <div id="compareRankChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Global Ranking Comparison</h3>
+        <div id="compareGlobalChart"></div>
+      </div>
+    </div>
 
     <div class="empty-state" x-show="!data && !loading && !error">
       <div class="icon">⚔️</div>
@@ -185,6 +187,5 @@
 
 </main>
 
-<script type="module" src="/js/app.js"></script>
 </body>
 </html>

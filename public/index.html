@@ -32,7 +32,7 @@
       <div class="search-row">
         <div class="field pos-relative">
           <label>Username</label>
-          <input type="text" x-model="query" @input="onInput()" placeholder="e.g. tourist" autocomplete="off" @keydown.escape="suggestions = []" />
+          <input type="text" x-model="query" @input="onInput()" placeholder="e.g. LarryNY" autocomplete="off" @keydown.escape="suggestions = []" />
           <ul class="autocomplete-list" style="display:none" x-show="suggestions.length > 0" @click.outside="suggestions = []">
             <template x-for="u in suggestions" :key="u.user_slug + u.data_region">
               <li @click="selectSuggestion(u)">

@@ -55,11 +55,11 @@ export async function searchUsers(query) {
     sql: `
       SELECT DISTINCT username, user_slug, data_region
       FROM contest_results
-      WHERE username LIKE ? OR user_slug LIKE ?
-      ORDER BY username COLLATE NOCASE
+      WHERE user_slug LIKE ?
+      ORDER BY user_slug COLLATE NOCASE
       LIMIT 20
     `,
-    args: [`%${query}%`, `%${query}%`],
+    args: [`${query}%`],
   });
   return result.rows;
 }

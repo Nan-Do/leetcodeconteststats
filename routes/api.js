@@ -3,22 +3,22 @@ import { getUserHistory, getUserStats, searchUsers } from '../db.js';
 
 const router = Router();
 
-router.get('/users/search', (req, res) => {
+router.get('/users/search', async (req, res) => {
   const { q } = req.query;
   if (!q || q.trim().length < 2) return res.json([]);
 
   try {
-    res.json(searchUsers(q.trim()));
+    res.json(await searchUsers(q.trim()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.get('/user/:userSlug/history', (req, res) => {
+router.get('/user/:userSlug/history', async (req, res) => {
   const { userSlug } = req.params;
   const dataRegion = req.query.region || 'US';
   try {
-    const history = getUserHistory(userSlug, dataRegion);
+    const history = await getUserHistory(userSlug, dataRegion);
     if (!history.length) return res.status(404).json({ error: 'No data found for this user' });
     res.json(history);
   } catch (err) {
@@ -26,11 +26,11 @@ router.get('/user/:userSlug/history', (req, res) => {
   }
 });
 
-router.get('/user/:userSlug/stats', (req, res) => {
+router.get('/user/:userSlug/stats', async (req, res) => {
   const { userSlug } = req.params;
   const dataRegion = req.query.region || 'US';
   try {
-    const stats = getUserStats(userSlug, dataRegion);
+    const stats = await getUserStats(userSlug, dataRegion);
     if (!stats) return res.status(404).json({ error: 'User not found' });
     res.json(stats);
   } catch (err) {
@@ -38,16 +38,18 @@ router.get('/user/:userSlug/stats', (req, res) => {
   }
 });
 
-router.get('/compare', (req, res) => {
+router.get('/compare', async (req, res) => {
   const { u1, u2, r1, r2 } = req.query;
   if (!u1 || !u2) return res.status(400).json({ error: 'Two user slugs required (u1, u2)' });
   const region1 = r1 || 'US';
   const region2 = r2 || 'US';
   try {
-    const u1_history = getUserHistory(u1, region1);
-    const u1_stats = getUserStats(u1, region1);
-    const u2_history = getUserHistory(u2, region2);
-    const u2_stats = getUserStats(u2, region2);
+    const [u1_history, u1_stats, u2_history, u2_stats] = await Promise.all([
+      getUserHistory(u1, region1),
+      getUserStats(u1, region1),
+      getUserHistory(u2, region2),
+      getUserStats(u2, region2),
+    ]);
 
     const u1_results = new Map();
     u1_history.forEach((contest) => u1_results.set(contest["contest_slug"], contest["rank"]))

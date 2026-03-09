@@ -72,9 +72,6 @@ router.get('/compare', (req, res) => {
       if (u1_results.has(contest_slug) && rank < u1_results.get(contest_slug)) u2_victories += 1;
     }
 
-    console.log(`${u1} has ${u1_victories} wins over ${u2}`);
-    console.log(`${u2} has ${u2_victories} wins over ${u1}`);
-
     res.json({
       user1: { history: u1_history, stats: u1_stats },
       user2: { history: u2_history, stats: u2_stats },

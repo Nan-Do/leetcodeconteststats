@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LeetCode Contest Stats</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <script>if(localStorage.getItem('theme')==='light')document.body.classList.add('light');</script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script defer src="/js/app.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
+<script>if(localStorage.getItem('theme') !== 'dark')document.body.classList.add('light');</script>
 
 <header>
   <div class="logo">LC<span>Stats</span></div>
-  <div class="tabs" x-data="{ tab: 'single', light: localStorage.getItem('theme') === 'light' }" id="tabRoot">
+  <div class="tabs" x-data="{ tab: 'single', light: localStorage.getItem('theme') !== 'dark' }" id="tabRoot">
     <button class="tab-btn" :class="{ active: tab === 'single' }" @click="tab = 'single'; window.dispatchEvent(new CustomEvent('tab', { detail: 'single' }))">Single User</button>
     <button class="tab-btn" :class="{ active: tab === 'compare' }" @click="tab = 'compare'; window.dispatchEvent(new CustomEvent('tab', { detail: 'compare' }))">Compare</button>
     <div class="theme-divider"></div>

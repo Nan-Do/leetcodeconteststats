@@ -3,15 +3,6 @@ import { getUsers, getUserHistory, getUserStats, searchUsers } from '../db.js';
 
 const router = Router();
 
-router.get('/users', (req, res) => {
-  try {
-    res.json(getUsers());
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 router.get('/users/search', (req, res) => {
   const { q } = req.query;
   if (!q || q.trim().length < 2) return res.json([]);

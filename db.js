@@ -6,15 +6,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DB_PATH || join(__dirname, 'leetcode_contests_data.sqlite');
 const db = new Database(DB_PATH, { readonly: true });
 
-export function getUsers() {
-  return db.prepare(`
-    SELECT DISTINCT username, user_slug, data_region
-    FROM contest_results
-    ORDER BY username COLLATE NOCASE
-    LIMIT 100
-  `).all();
-}
-
 export function getUserHistory(userSlug, dataRegion) {
   return db.prepare(`
     SELECT

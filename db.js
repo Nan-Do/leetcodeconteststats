@@ -39,8 +39,6 @@ export function getUserStats(userSlug, dataRegion) {
       COUNT(*) AS total_contests,
       MIN(cr.rank) AS best_rank,
       ROUND(AVG(cr.rank), 1) AS avg_rank,
-      MIN(cr.global_ranking) AS best_global_ranking,
-      ROUND(AVG(cr.global_ranking), 0) AS avg_global_ranking,
       MAX(cr.score) AS best_score,
       ROUND(AVG(cr.score), 1) AS avg_score,
       SUM(CASE WHEN cr.rank <= 500 THEN 1 ELSE 0 END) AS top500_count,

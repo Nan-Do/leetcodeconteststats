@@ -3,11 +3,23 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const USE_LOCAL_DATABASE = process.env.LOCAL || false;
 const DB_PATH = process.env.DB_PATH || join(__dirname, 'leetcode_contests_data.sqlite');
-const db = createClient({
-  url: `file:${DB_PATH}`,
-  readonly: true,
-});
+
+let db;
+if (USE_LOCAL_DATABASE) {
+  db = createClient({
+    url: `file:${DB_PATH}`,
+    readonly: true,
+  });
+}
+else {
+  db = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+    readonly: true,
+  });
+}
 
 export async function getUserHistory(userSlug, dataRegion) {
   const result = await db.execute({
@@ -57,8 +69,7 @@ export async function searchUsers(query) {
       FROM contest_results
       WHERE user_slug LIKE ?
       ORDER BY user_slug COLLATE NOCASE
-      LIMIT 20
-    `,
+      LIMIT 20`,
     args: [`${query}%`],
   });
   return result.rows;

@@ -2,11 +2,11 @@
 
 A web application to explore and compare LeetCode contest performance. Search for any user to view their contest history, rankings, and scores — or compare two users head-to-head with interactive charts.
 
-#### Single user tab
+#### Single User Tab
 
 ![Bright theme UI with contest rank chart for a single user](./SingleUser-Bright.png)
 
-#### Comparison tab
+#### Compare Tab
 
 ![Bright theme UI with contest rank chart for user comparison](./Compare-Bright.png)
 

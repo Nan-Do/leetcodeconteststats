@@ -2,7 +2,12 @@
 
 A web application to explore and compare LeetCode contest performance. Search for any user to view their contest history, rankings, and scores — or compare two users head-to-head with interactive charts.
 
+#### Single user tab
+
 ![Bright theme UI with contest rank chart for a single user](./SingleUser-Bright.png)
+
+#### Comparison tab
+
 ![Bright theme UI with contest rank chart for user comparison](./Compare-Bright.png)
 
 ## Features
@@ -79,5 +84,3 @@ The server starts on port `3000` by default. Open [http://localhost:3000](http:/
 MIT
 
 ---
-
-Made by [Nando](https://github.com/Nan-Do) ❤️ — [Source code](https://github.com/Nan-Do)

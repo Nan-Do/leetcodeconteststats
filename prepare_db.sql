@@ -18,7 +18,7 @@ SELECT contest_id, user_slug, rank, score, data_region FROM contest_results_old;
 -- Step 4: Drop the old table
 DROP TABLE contest_results_old;
 
--- Step 5: Generate the indices for the searches
+-- Step 5: Generate the indices for the queries
 CREATE INDEX idx_user_stats_history ON contest_results(
     user_slug,
     data_region,

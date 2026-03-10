@@ -33,11 +33,11 @@
       <div class="search-row">
         <div class="field pos-relative">
           <label>Username</label>
-          <input type="text" x-model="query" @input="onInput()" placeholder="e.g. LarryNY" autocomplete="off" @keydown.escape="suggestions = []" />
+          <input type="text" x-model="query" @input="onInput()" placeholder="e.g. LarryNY" autocomplete="off" @keydown.escape="suggestions = []; highlightIndex = -1" @keydown="onKeydown($event)" @keydown.enter.prevent="if(!suggestions.length || highlightIndex < 0) { suggestions = []; load(); }" />
           <ul class="autocomplete-list" style="display:none" x-show="suggestions.length > 0" @click.outside="suggestions = []">
-            <template x-for="u in suggestions" :key="u.user_slug + u.data_region">
-              <li @click="selectSuggestion(u)">
-                <span x-text="u.username"></span>
+            <template x-for="(u, i) in suggestions" :key="u.user_slug + u.data_region">
+              <li @click="selectSuggestion(u)" :class="{ highlighted: highlightIndex === i }">
+                <span x-text="u.user_slug"></span>
                 <span class="region-badge" x-text="u.data_region"></span>
               </li>
             </template>
@@ -113,11 +113,11 @@
       <div class="search-row">
         <div class="field pos-relative">
           <label style="color: #f89f1b">User 1</label>
-          <input type="text" x-model="query1" @input="onInput1()" placeholder="First user" autocomplete="off" @keydown.escape="suggestions1 = []" />
+          <input type="text" x-model="query1" @input="onInput1()" placeholder="First user" autocomplete="off" @keydown.escape="suggestions1 = []; highlightIndex1 = -1" @keydown="onKeydown1($event)" />
           <ul class="autocomplete-list" style="display:none" x-show="suggestions1.length > 0" @click.outside="suggestions1 = []">
-            <template x-for="u in suggestions1" :key="u.user_slug + u.data_region">
-              <li @click="selectSuggestion1(u)">
-                <span x-text="u.username"></span>
+            <template x-for="(u, i) in suggestions1" :key="u.user_slug + u.data_region">
+              <li @click="selectSuggestion1(u)" :class="{ highlighted: highlightIndex1 === i }">
+                <span x-text="u.user_slug"></span>
                 <span class="region-badge" x-text="u.data_region"></span>
               </li>
             </template>
@@ -125,11 +125,11 @@
         </div>
         <div class="field pos-relative">
           <label style="color: #00b8d9">User 2</label>
-          <input type="text" x-model="query2" @input="onInput2()" placeholder="Second user" autocomplete="off" @keydown.escape="suggestions2 = []" />
+          <input type="text" x-model="query2" @input="onInput2()" placeholder="Second user" autocomplete="off" @keydown.escape="suggestions2 = []; highlightIndex2 = -1" @keydown="onKeydown2($event)" />
           <ul class="autocomplete-list" style="display:none" x-show="suggestions2.length > 0" @click.outside="suggestions2 = []">
-            <template x-for="u in suggestions2" :key="u.user_slug + u.data_region">
-              <li @click="selectSuggestion2(u)">
-                <span x-text="u.username"></span>
+            <template x-for="(u, i) in suggestions2" :key="u.user_slug + u.data_region">
+              <li @click="selectSuggestion2(u)" :class="{ highlighted: highlightIndex2 === i }">
+                <span x-text="u.user_slug"></span>
                 <span class="region-badge" x-text="u.data_region"></span>
               </li>
             </template>
@@ -151,20 +151,20 @@
     <template x-if="data && !loading">
       <div class="compare-stats">
         <div class="compare-col u1">
-          <div class="col-header" x-text="data.user1.stats.username"></div>
+          <div class="col-header" x-text="data.user1.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="data.user1.stats.total_contests"></span></div>
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user1.stats.best_rank"></span></div>
           <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user1.stats.avg_rank"></span></div>
-          <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user2.stats.username"></span><span class="sval" x-text="data.wins.user1"></span></div>
+          <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user2.stats.user_slug"></span><span class="sval" x-text="data.wins.user1"></span></div>
           <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user1.stats.best_score"></span></div>
           <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user1.stats.top500_count"></span></div>
         </div>
         <div class="compare-col u2">
-          <div class="col-header" x-text="data.user2.stats.username"></div>
+          <div class="col-header" x-text="data.user2.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="data.user2.stats.total_contests"></span></div>
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user2.stats.best_rank"></span></div>
           <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user2.stats.avg_rank"></span></div>
-          <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user1.stats.username"></span><span class="sval" x-text="data.wins.user2"></span></div>
+          <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user1.stats.user_slug"></span><span class="sval" x-text="data.wins.user2"></span></div>
           <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user2.stats.best_score"></span></div>
           <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user2.stats.top500_count"></span></div>
         </div>

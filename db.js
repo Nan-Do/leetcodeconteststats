@@ -45,7 +45,6 @@ export async function getUserStats(userSlug, dataRegion) {
   const result = await db.execute({
     sql: `
       SELECT
-        cr.username,
         cr.user_slug,
         cr.data_region,
         COUNT(*) AS total_contests,
@@ -66,7 +65,7 @@ export async function getUserStats(userSlug, dataRegion) {
 export async function searchUsers(query) {
   const result = await db.execute({
     sql: `
-      SELECT DISTINCT username, user_slug, data_region
+      SELECT DISTINCT user_slug, data_region
       FROM contest_results
       WHERE user_slug LIKE ?
       ORDER BY user_slug COLLATE NOCASE

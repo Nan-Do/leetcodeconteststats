@@ -324,7 +324,8 @@ select option { background: var(--surface2); }
   align-items: center;
 }
 
-.autocomplete-list li:hover { background: var(--border); }
+.autocomplete-list li:hover,
+.autocomplete-list li.highlighted { background: var(--border); }
 .autocomplete-list li .region-badge {
   font-size: 0.7rem;
   background: var(--border);

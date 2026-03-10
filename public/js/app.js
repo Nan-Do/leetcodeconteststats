@@ -57,7 +57,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
 async function resolveUser(query) {
   const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
   const results = await res.json();
-  return results.find(u => u.username.toLowerCase() === query.toLowerCase()) || null;
+  return results.find(u => u.user_slug.toLowerCase() === query.toLowerCase()) || null;
 }
 
 document.addEventListener('alpine:init', () => {
@@ -67,6 +67,7 @@ document.addEventListener('alpine:init', () => {
     activeTab: 'single',
     query: '',
     suggestions: [],
+    highlightIndex: -1,
     selectedUser: null,
     loading: false,
     error: null,
@@ -84,6 +85,7 @@ document.addEventListener('alpine:init', () => {
 
     async onInput() {
       this.selectedUser = null;
+      this.highlightIndex = -1;
       clearTimeout(this.debounceTimer);
       if (this.query.length < 2) { this.suggestions = []; return; }
       this.debounceTimer = setTimeout(async () => {
@@ -93,10 +95,18 @@ document.addEventListener('alpine:init', () => {
     },
 
     selectSuggestion(u) {
-      this.query = u.username;
+      this.query = u.user_slug;
       this.selectedUser = u;
       this.suggestions = [];
+      this.highlightIndex = -1;
       this.load();
+    },
+
+    onKeydown(e) {
+      if (!this.suggestions.length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); this.highlightIndex = Math.min(this.highlightIndex + 1, this.suggestions.length - 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.highlightIndex = Math.max(this.highlightIndex - 1, -1); }
+      else if (e.key === 'Enter' && this.highlightIndex >= 0) { e.preventDefault(); this.selectSuggestion(this.suggestions[this.highlightIndex]); }
     },
 
     async load() {
@@ -147,6 +157,7 @@ document.addEventListener('alpine:init', () => {
     activeTab: 'single',
     query1: '', query2: '',
     suggestions1: [], suggestions2: [],
+    highlightIndex1: -1, highlightIndex2: -1,
     user1: null, user2: null,
     loading: false, error: null,
     data: null,
@@ -161,6 +172,7 @@ document.addEventListener('alpine:init', () => {
 
     async onInput1() {
       this.user1 = null;
+      this.highlightIndex1 = -1;
       clearTimeout(this.debounceTimer1);
       if (this.query1.length < 2) { this.suggestions1 = []; return; }
       this.debounceTimer1 = setTimeout(async () => {
@@ -171,6 +183,7 @@ document.addEventListener('alpine:init', () => {
 
     async onInput2() {
       this.user2 = null;
+      this.highlightIndex2 = -1;
       clearTimeout(this.debounceTimer2);
       if (this.query2.length < 2) { this.suggestions2 = []; return; }
       this.debounceTimer2 = setTimeout(async () => {
@@ -179,8 +192,20 @@ document.addEventListener('alpine:init', () => {
       }, 250);
     },
 
-    selectSuggestion1(u) { this.query1 = u.username; this.user1 = u; this.suggestions1 = []; },
-    selectSuggestion2(u) { this.query2 = u.username; this.user2 = u; this.suggestions2 = []; },
+    selectSuggestion1(u) { this.query1 = u.user_slug; this.user1 = u; this.suggestions1 = []; this.highlightIndex1 = -1; },
+    selectSuggestion2(u) { this.query2 = u.user_slug; this.user2 = u; this.suggestions2 = []; this.highlightIndex2 = -1; },
+
+    onKeydown1(e) {
+      if (e.key === 'ArrowDown' && this.suggestions1.length) { e.preventDefault(); this.highlightIndex1 = Math.min(this.highlightIndex1 + 1, this.suggestions1.length - 1); }
+      else if (e.key === 'ArrowUp' && this.suggestions1.length) { e.preventDefault(); this.highlightIndex1 = Math.max(this.highlightIndex1 - 1, -1); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (this.highlightIndex1 >= 0) { this.selectSuggestion1(this.suggestions1[this.highlightIndex1]); } else { this.suggestions1 = []; this.compare(); } }
+    },
+
+    onKeydown2(e) {
+      if (e.key === 'ArrowDown' && this.suggestions2.length) { e.preventDefault(); this.highlightIndex2 = Math.min(this.highlightIndex2 + 1, this.suggestions2.length - 1); }
+      else if (e.key === 'ArrowUp' && this.suggestions2.length) { e.preventDefault(); this.highlightIndex2 = Math.max(this.highlightIndex2 - 1, -1); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (this.highlightIndex2 >= 0) { this.selectSuggestion2(this.suggestions2[this.highlightIndex2]); } else { this.suggestions2 = []; this.compare(); } }
+    },
 
     async compare() {
       if (this.query1.length < 2 || this.query2.length < 2) return;
@@ -211,8 +236,8 @@ document.addEventListener('alpine:init', () => {
       if (this.chart) { this.chart.destroy(); this.chart = null; }
 
       const base = getApexBase();
-      const s1 = { name: this.data.user1.stats.username, data: historyToSeries(this.data.user1.history, 'rank'), color: CHART_COLORS.u1 };
-      const s2 = { name: this.data.user2.stats.username, data: historyToSeries(this.data.user2.history, 'rank'), color: CHART_COLORS.u2 };
+      const s1 = { name: this.data.user1.stats.user_slug, data: historyToSeries(this.data.user1.history, 'rank'), color: CHART_COLORS.u1 };
+      const s2 = { name: this.data.user2.stats.user_slug, data: historyToSeries(this.data.user2.history, 'rank'), color: CHART_COLORS.u2 };
       this.chart = new ApexCharts(document.querySelector('#compareRankChart'), {
         ...base,
         chart: { ...base.chart, type: 'line', height: 360 },

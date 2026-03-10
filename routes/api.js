@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/users/search', async (req, res) => {
   const { q } = req.query;
-  if (!q || q.trim().length < 2) return res.json([]);
+  if (!q || q.trim().length < 3) return res.json([]);
 
   try {
     res.json(await searchUsers(q.trim()));

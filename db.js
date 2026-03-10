@@ -4,20 +4,21 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const USE_LOCAL_DATABASE = process.env.LOCAL || false;
-const DB_PATH = process.env.DB_PATH || join(__dirname, 'leetcode_contests_data.sqlite');
+const DB_PATH = process.env.DB_PATH || join(__dirname, 'leetcodeconteststats.db')
 
 let db;
 if (USE_LOCAL_DATABASE) {
+  console.log("Using local database")
   db = createClient({
     url: `file:${DB_PATH}`,
     readonly: true,
   });
 }
 else {
+  console.log("Using remote database")
   db = createClient({
     url: process.env.TURSO_DATABASE_URL,
     authToken: process.env.TURSO_AUTH_TOKEN,
-    readonly: true,
   });
 }
 

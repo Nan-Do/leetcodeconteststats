@@ -53,7 +53,8 @@ export async function getUserStats(userSlug, dataRegion) {
         MAX(cr.score) AS best_score,
         ROUND(AVG(cr.score), 1) AS avg_score,
         SUM(CASE WHEN cr.rank <= 500 THEN 1 ELSE 0 END) AS top500_count,
-        SUM(CASE WHEN cr.rank = 1 THEN 1 ELSE 0 END) AS wins_count
+        SUM(CASE WHEN cr.rank = 1 THEN 1 ELSE 0 END) AS wins_count,
+        SUM(CASE WHEN cr.score = cr.contest_score THEN 1 ELSE 0 END) AS ak_count
       FROM contest_results cr
       WHERE cr.user_slug = ? AND cr.data_region = ?
     `,

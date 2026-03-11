@@ -75,8 +75,9 @@
           <div class="value" x-text="'#' + stats.avg_rank"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Wins</div>
-          <div class="value" x-text="stats.wins_count"></div>
+          <div class="label">AK / Wins</div>
+          <div class="value" x-text="stats.ak_count + ' / ' + stats.wins_count"></div>
+          <div class="sub" x-text="pct(stats.ak_count, stats.total_contests) + ' / ' + pct(stats.wins_count, stats.total_contests)"></div>
         </div>
         <div class="stat-card">
           <div class="label">Best Score</div>
@@ -156,6 +157,8 @@
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user1.stats.best_rank"></span></div>
           <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user1.stats.avg_rank"></span></div>
           <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user2.stats.user_slug"></span><span class="sval" x-text="data.wins.user1"></span></div>
+          <div class="stat-row"><span class="skey">AK</span><span class="sval" x-text="data.user1.stats.ak_count"></span></div>
+          <div class="stat-row"><span class="skey">Wins</span><span class="sval" x-text="data.user1.stats.wins_count"></span></div>
           <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user1.stats.best_score"></span></div>
           <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user1.stats.top500_count"></span></div>
         </div>
@@ -165,6 +168,8 @@
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="'#' + data.user2.stats.best_rank"></span></div>
           <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="'#' + data.user2.stats.avg_rank"></span></div>
           <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user1.stats.user_slug"></span><span class="sval" x-text="data.wins.user2"></span></div>
+          <div class="stat-row"><span class="skey">AK</span><span class="sval" x-text="data.user2.stats.ak_count"></span></div>
+          <div class="stat-row"><span class="skey">Wins</span><span class="sval" x-text="data.user2.stats.wins_count"></span></div>
           <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="data.user2.stats.best_score"></span></div>
           <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="data.user2.stats.top500_count"></span></div>
         </div>

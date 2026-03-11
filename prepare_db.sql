@@ -7,6 +7,7 @@ CREATE TABLE contest_results (
     user_slug TEXT,
     rank INTEGER NOT NULL,
     score INTEGER NOT NULL,
+    contest_score INTEGER DEFAULT 0,
     data_region TEXT,
     PRIMARY KEY(contest_id, user_slug, data_region)
 );
@@ -24,7 +25,8 @@ CREATE INDEX idx_user_stats_history ON contest_results(
     data_region,
     contest_id,
     rank,
-    score
+    score,
+    contest_score
 );
 
 CREATE INDEX idx_user_search ON contest_results(

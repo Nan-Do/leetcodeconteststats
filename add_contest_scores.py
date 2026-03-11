@@ -28,7 +28,7 @@ def main(database_path: str, jsonl_path: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Tool to fix the dates from leetcode database"
+        description="Tool to add the max score for each contest to the table contest_results"
     )
 
     parser.add_argument(
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         "-d",
         type=str,
         required=True,
-        help="database to be modified (it needs to have a contest table with wrong dates)",
+        help="database to be modified (it needs to have a contest_results table with a contest_score field)",
     )
 
     parser.add_argument(

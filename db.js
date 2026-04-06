@@ -30,7 +30,8 @@ export async function getUserHistory(userSlug, dataRegion) {
         c.time,
         c.num_participants,
         cr.rank,
-        cr.score
+        cr.score,
+        cr.contest_score
       FROM contest_results cr
       JOIN contest c ON cr.contest_id = c.contest_id
       WHERE cr.user_slug = ? AND cr.data_region = ?

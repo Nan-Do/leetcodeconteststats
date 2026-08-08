@@ -36,7 +36,7 @@ CREATE INDEX idx_user_search ON contest_results(
 
 -- Step 6: Make sure the database is ready to be uploaded to Turso
 PRAGMA journal_mode = WAL;
-PRAGMA wal_checkpoint(TRUNCATE);
+-- PRAGMA wal_checkpoint(TRUNCATE);
 
 -- Step 7: Optimize the space
 VACUUM;

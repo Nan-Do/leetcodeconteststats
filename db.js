@@ -31,7 +31,8 @@ export async function getUserHistory(userSlug, dataRegion) {
         c.num_participants,
         cr.rank,
         cr.score,
-        cr.contest_score
+        cr.contest_score,
+        time(cr.finish_time - c.time, 'unixepoch') as total_time
       FROM contest_results cr
       JOIN contest c ON cr.contest_id = c.contest_id
       WHERE cr.user_slug = ? AND cr.data_region = ?

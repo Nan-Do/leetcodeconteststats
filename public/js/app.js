@@ -23,7 +23,7 @@ function formatDate(unixTs) {
 }
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -52,6 +52,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Contest:', point.contest_slug || '—')}
     ${row('Rank:', `#${rank}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
+    ${row('Time:', `${point.total_time}`)}
   </div>`;
 }
 

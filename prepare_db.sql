@@ -8,13 +8,14 @@ CREATE TABLE contest_results (
     rank INTEGER NOT NULL,
     score INTEGER NOT NULL,
     contest_score INTEGER DEFAULT 0,
+    finish_time REAL,
     data_region TEXT,
     PRIMARY KEY(contest_id, user_slug, data_region)
 );
 
 -- Step 3: Copy data
-INSERT INTO contest_results (contest_id, user_slug, rank, score, data_region)
-SELECT contest_id, user_slug, rank, score, data_region FROM contest_results_old;
+INSERT INTO contest_results (contest_id, user_slug, rank, score, finish_time, data_region)
+SELECT contest_id, user_slug, rank, score, finish_time, data_region FROM contest_results_old;
 
 -- Step 4: Drop the old table
 DROP TABLE contest_results_old;

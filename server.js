@@ -35,7 +35,7 @@ const logger = (req, res, next) => {
   next();
 };
 
-export default logger;
+export default app;
 
 // Search runs a DISTINCT over 12M rows and fires once per keystroke, so it is
 // the endpoint worth putting a ceiling on. 300/minute is far above what typing
@@ -91,6 +91,9 @@ app.use(express.static(join(__dirname, 'public'), {
 }));
 app.use('/api', apiLimiter, apiRouter);
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}

@@ -1,54 +1,94 @@
 import { Router } from 'express';
-import { getUserHistory, getUserStats, searchUsers } from '../db.js';
+import { findUserCandidates, getUserHistory, getUserStats, searchUsers } from '../db.js';
 
 const router = Router();
 
+// The client applies this same minimum before it calls. Keep the two in step: a
+// longer minimum here than the client knows about makes short usernames
+// unreachable rather than merely unsuggested.
+const MIN_QUERY_LENGTH = 2;
+
+const VALID_REGIONS = ['US', 'CN'];
+
+class HttpError extends Error {
+  constructor(status, message, extra = {}) {
+    super(message);
+    this.status = status;
+    this.extra = extra;
+  }
+}
+
+// Express hands over an array when a parameter repeats (?q=a&q=b), which would
+// otherwise reach string methods that don't exist on it.
+const str = (value) => (typeof value === 'string' ? value : '');
+
+function sendError(res, err) {
+  res.status(err.status ?? 500).json({ error: err.message, ...err.extra });
+}
+
+// Turns a slug and an optional region into the single account they name, or
+// throws explaining why they don't name exactly one.
+async function resolveUser(userSlug, region) {
+  if (region && !VALID_REGIONS.includes(region)) {
+    throw new HttpError(400, `Unknown region "${region}". Expected ${VALID_REGIONS.join(' or ')}.`);
+  }
+
+  const candidates = await findUserCandidates(userSlug, region || null);
+
+  if (!candidates.length) {
+    throw new HttpError(404, `No data found for user "${userSlug}"`);
+  }
+  if (candidates.length > 1) {
+    throw new HttpError(409, `"${userSlug}" matches ${candidates.length} accounts — name one exactly`, { candidates });
+  }
+  return candidates[0];
+}
+
 router.get('/users/search', async (req, res) => {
-  const { q } = req.query;
-  if (!q || q.trim().length < 3) return res.json([]);
+  const q = str(req.query.q).trim();
+  if (q.length < MIN_QUERY_LENGTH) return res.json([]);
 
   try {
-    res.json(await searchUsers(q.trim()));
+    res.json(await searchUsers(q));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
 router.get('/user/:userSlug/history', async (req, res) => {
-  const { userSlug } = req.params;
-  const dataRegion = req.query.region || 'US';
   try {
-    const history = await getUserHistory(userSlug, dataRegion);
-    if (!history.length) return res.status(404).json({ error: 'No data found for this user' });
-    res.json(history);
+    const user = await resolveUser(req.params.userSlug, str(req.query.region));
+    res.json(await getUserHistory(user.user_slug, user.data_region));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
 router.get('/user/:userSlug/stats', async (req, res) => {
-  const { userSlug } = req.params;
-  const dataRegion = req.query.region || 'US';
   try {
-    const stats = await getUserStats(userSlug, dataRegion);
-    if (!stats) return res.status(404).json({ error: 'User not found' });
-    res.json(stats);
+    const user = await resolveUser(req.params.userSlug, str(req.query.region));
+    res.json(await getUserStats(user.user_slug, user.data_region));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 
 router.get('/compare', async (req, res) => {
-  const { u1, u2, r1, r2 } = req.query;
+  const u1 = str(req.query.u1).trim();
+  const u2 = str(req.query.u2).trim();
   if (!u1 || !u2) return res.status(400).json({ error: 'Two user slugs required (u1, u2)' });
-  const region1 = r1 || 'US';
-  const region2 = r2 || 'US';
+
   try {
+    const [user1, user2] = await Promise.all([
+      resolveUser(u1, str(req.query.r1)),
+      resolveUser(u2, str(req.query.r2)),
+    ]);
+
     const [u1_history, u1_stats, u2_history, u2_stats] = await Promise.all([
-      getUserHistory(u1, region1),
-      getUserStats(u1, region1),
-      getUserHistory(u2, region2),
-      getUserStats(u2, region2),
+      getUserHistory(user1.user_slug, user1.data_region),
+      getUserStats(user1.user_slug, user1.data_region),
+      getUserHistory(user2.user_slug, user2.data_region),
+      getUserStats(user2.user_slug, user2.data_region),
     ]);
 
     const u1_results = new Map();
@@ -71,7 +111,7 @@ router.get('/compare', async (req, res) => {
       wins: { user1: u1_victories, user2: u2_victories },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, err);
   }
 });
 

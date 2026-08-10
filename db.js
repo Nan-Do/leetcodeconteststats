@@ -22,6 +22,32 @@ else {
   });
 }
 
+// Case is part of a user's identity: `009-KumarJi` and `009-kumarji` are two
+// different accounts with two different histories. The lookups below therefore
+// match exactly, and this is the only place that matches case-insensitively —
+// to turn whatever the caller typed into the one account it names, or to report
+// that it names several. Callers pass the resolved slug on to those lookups.
+export async function findUserCandidates(userSlug, dataRegion = null) {
+  const result = await db.execute({
+    sql: `
+      SELECT DISTINCT user_slug, data_region
+      FROM contest_results
+      WHERE user_slug = ? COLLATE NOCASE
+      ORDER BY user_slug, data_region
+    `,
+    args: [userSlug],
+  });
+
+  const candidates = dataRegion
+    ? result.rows.filter((row) => row.data_region === dataRegion)
+    : result.rows;
+
+  // An exactly-cased match is the account the caller named, so it wins outright
+  // instead of competing with its differently-cased namesakes.
+  const exact = candidates.filter((row) => row.user_slug === userSlug);
+  return exact.length ? exact : candidates;
+}
+
 export async function getUserHistory(userSlug, dataRegion) {
   const result = await db.execute({
     sql: `
@@ -63,7 +89,10 @@ export async function getUserStats(userSlug, dataRegion) {
     `,
     args: [userSlug, dataRegion],
   });
-  return result.rows[0] ?? null;
+  // An unfiltered aggregate always yields exactly one row, so a user with no
+  // results arrives as a row of nulls rather than as no row at all.
+  const stats = result.rows[0];
+  return stats?.total_contests > 0 ? stats : null;
 }
 
 export async function searchUsers(query) {
@@ -72,7 +101,9 @@ export async function searchUsers(query) {
       SELECT DISTINCT user_slug, data_region
       FROM contest_results
       WHERE user_slug LIKE ?
-      ORDER BY user_slug COLLATE NOCASE
+      -- A NOCASE sort leaves case-only variants tied, and an unspecified tie
+      -- order lets identical queries disagree about which one comes first.
+      ORDER BY user_slug COLLATE NOCASE, user_slug, data_region
       LIMIT 20`,
     args: [`${query}%`],
   });

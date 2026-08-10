@@ -1,5 +1,9 @@
 const CHART_COLORS = { u1: '#f89f1b', u2: '#00b8d9' };
 
+// Must match MIN_QUERY_LENGTH in routes/api.js — searching below the server's
+// own minimum returns an empty list, which reads as "no such user".
+const MIN_QUERY_LENGTH = 2;
+
 function getApexBase() {
   const light = document.body.classList.contains('light');
   const bg = light ? '#ffffff' : '#1a1d27';
@@ -59,8 +63,13 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
 
 async function resolveUser(query) {
   const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error(`Could not look up "${query}"`);
   const results = await res.json();
-  return results.find(u => u.user_slug.toLowerCase() === query.toLowerCase()) || null;
+  // Case is part of the identity — several accounts can differ only in case, so
+  // an exactly-cased match wins over a namesake that merely matches loosely.
+  return results.find(u => u.user_slug === query)
+    ?? results.find(u => u.user_slug.toLowerCase() === query.toLowerCase())
+    ?? null;
 }
 
 document.addEventListener('alpine:init', () => {
@@ -79,6 +88,7 @@ document.addEventListener('alpine:init', () => {
     chart: null,
     globalChart: null,
     debounceTimer: null,
+    minLength: MIN_QUERY_LENGTH,
 
     init() {
       window.addEventListener('themechange', () => {
@@ -90,7 +100,7 @@ document.addEventListener('alpine:init', () => {
       this.selectedUser = null;
       this.highlightIndex = -1;
       clearTimeout(this.debounceTimer);
-      if (this.query.length < 2) { this.suggestions = []; return; }
+      if (this.query.length < MIN_QUERY_LENGTH) { this.suggestions = []; return; }
       this.debounceTimer = setTimeout(async () => {
         const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query)}`);
         this.suggestions = await res.json();
@@ -113,7 +123,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     async load() {
-      if (this.query.length < 2) return;
+      if (this.query.length < MIN_QUERY_LENGTH) return;
       this.loading = true; this.error = null; this.stats = null; this.history = [];
       try {
         if (!this.selectedUser) {
@@ -121,9 +131,11 @@ document.addEventListener('alpine:init', () => {
           if (!this.selectedUser) throw new Error(`User "${this.query}" not found`);
         }
         const { user_slug, data_region } = this.selectedUser;
+        const slug = encodeURIComponent(user_slug);
+        const region = encodeURIComponent(data_region);
         const [sRes, hRes] = await Promise.all([
-          fetch(`/api/user/${user_slug}/stats?region=${data_region}`),
-          fetch(`/api/user/${user_slug}/history?region=${data_region}`)
+          fetch(`/api/user/${slug}/stats?region=${region}`),
+          fetch(`/api/user/${slug}/history?region=${region}`)
         ]);
         if (!sRes.ok) throw new Error((await sRes.json()).error);
         this.stats = await sRes.json();
@@ -166,6 +178,7 @@ document.addEventListener('alpine:init', () => {
     data: null,
     chart: null,
     debounceTimer1: null, debounceTimer2: null,
+    minLength: MIN_QUERY_LENGTH,
 
     init() {
       window.addEventListener('themechange', () => {
@@ -177,7 +190,7 @@ document.addEventListener('alpine:init', () => {
       this.user1 = null;
       this.highlightIndex1 = -1;
       clearTimeout(this.debounceTimer1);
-      if (this.query1.length < 2) { this.suggestions1 = []; return; }
+      if (this.query1.length < MIN_QUERY_LENGTH) { this.suggestions1 = []; return; }
       this.debounceTimer1 = setTimeout(async () => {
         const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query1)}`);
         this.suggestions1 = await res.json();
@@ -188,7 +201,7 @@ document.addEventListener('alpine:init', () => {
       this.user2 = null;
       this.highlightIndex2 = -1;
       clearTimeout(this.debounceTimer2);
-      if (this.query2.length < 2) { this.suggestions2 = []; return; }
+      if (this.query2.length < MIN_QUERY_LENGTH) { this.suggestions2 = []; return; }
       this.debounceTimer2 = setTimeout(async () => {
         const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query2)}`);
         this.suggestions2 = await res.json();
@@ -211,7 +224,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     async compare() {
-      if (this.query1.length < 2 || this.query2.length < 2) return;
+      if (this.query1.length < MIN_QUERY_LENGTH || this.query2.length < MIN_QUERY_LENGTH) return;
       this.loading = true; this.error = null; this.data = null;
       try {
         if (!this.user1) {
@@ -222,8 +235,11 @@ document.addEventListener('alpine:init', () => {
           this.user2 = await resolveUser(this.query2);
           if (!this.user2) throw new Error(`User "${this.query2}" not found`);
         }
-        const url = `/api/compare?u1=${this.user1.user_slug}&u2=${this.user2.user_slug}&r1=${this.user1.data_region}&r2=${this.user2.data_region}`;
-        const res = await fetch(url);
+        const params = new URLSearchParams({
+          u1: this.user1.user_slug, r1: this.user1.data_region,
+          u2: this.user2.user_slug, r2: this.user2.data_region,
+        });
+        const res = await fetch(`/api/compare?${params}`);
         if (!res.ok) throw new Error((await res.json()).error);
         this.data = await res.json();
         this.loading = false;

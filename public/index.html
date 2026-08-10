@@ -45,7 +45,7 @@
         </div>
         <div class="field-btn-wrap">
           <label class="label-spacer" aria-hidden="true">Username</label>
-          <button class="btn btn-primary" @click="load()" :disabled="query.length < 2 || loading">
+          <button class="btn btn-primary" @click="load()" :disabled="query.length < minLength || loading">
             <span x-show="!loading">Load Stats</span>
             <span style="display:none" x-show="loading">Loading...</span>
           </button>
@@ -138,7 +138,7 @@
         </div>
         <div class="field-btn-wrap">
           <label class="label-spacer" aria-hidden="true">User 1</label>
-          <button class="btn btn-primary" @click="compare()" :disabled="query1.length < 2 || query2.length < 2 || loading">
+          <button class="btn btn-primary" @click="compare()" :disabled="query1.length < minLength || query2.length < minLength || loading">
             <span x-show="!loading">Compare</span>
             <span style="display:none" x-show="loading">Loading...</span>
           </button>

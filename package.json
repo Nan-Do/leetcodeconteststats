@@ -13,6 +13,9 @@
   "type": "module",
   "dependencies": {
     "@libsql/client": "^0.17.4",
-    "express": "^5.2.1"
+    "compression": "^1.8.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0"
   }
 }

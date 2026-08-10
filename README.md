@@ -56,6 +56,7 @@ The server starts on port `3000` by default. Open [http://localhost:3000](http:/
 |---------------------|---------|-------------|
 | `PORT` | `3000` | Port the server listens on |
 | `DB_PATH` | `./leetcodeconteststats.db` | Path to the SQLite database file (if you want to provide your own)|
+| `TRUST_PROXY` | _(off)_ | Number of reverse proxies in front of the app. Set this when deploying behind one, so rate limiting sees the real client address instead of the proxy's. Leave unset when the app is exposed directly — otherwise a client can spoof its own address via `X-Forwarded-For`. |
 
 ## API
 

@@ -22,19 +22,13 @@ SELECT contest_id, user_slug, rank, score, finish_time, data_region FROM contest
 DROP TABLE contest_results_old;
 
 -- Step 5: Generate the indices for the queries
-CREATE INDEX idx_user_stats_history ON contest_results(
-    user_slug,
-    data_region,
-    contest_id,
-    rank,
-    score,
-    contest_score
-);
+-- Index 1: Optimizes Queries 1, 2, and 3 (User History & Aggregates)
+CREATE INDEX idx_contest_results_user_region 
+ON contest_results (user_slug, data_region);
 
-CREATE INDEX idx_user_search ON contest_results(
-    user_slug COLLATE NOCASE, 
-    data_region
-);
+-- Index 2: Optimizes Query 4 (Autocomplete / Search by prefix)
+CREATE INDEX idx_contest_results_user_search 
+ON contest_results (user_slug COLLATE NOCASE, data_region);
 
 -- Step 6: Make sure the database is ready to be uploaded to Turso
 PRAGMA journal_mode = WAL;

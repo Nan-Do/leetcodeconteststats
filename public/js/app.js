@@ -69,19 +69,22 @@ const charts = new Map();
 
 // Replaces whatever chart is in `selector` with a new one.
 function drawRankChart(selector, { series, height }) {
-  const el = document.querySelector(selector);
+  const host = document.querySelector(selector);
   charts.get(selector)?.destroy();
   charts.delete(selector);
 
-  // ApexCharts empties the container and drops the min-height it set during
-  // render inside one `if` that only runs while it can still find its own SVG.
-  // When that check fails nothing is cleaned up, so the previous chart stays on
-  // the page and the new one renders below it. Reset both by hand.
-  el.replaceChildren();
-  el.style.minHeight = '';
+  // Every chart gets its own element, and the host is emptied before the new
+  // one goes in. ApexCharts writes into whatever element it was handed, so
+  // anything the outgoing chart still does lands in a node that is no longer in
+  // the document rather than stacking under the replacement: a teardown that
+  // could not find its own SVG (it gives up silently), a render that had not
+  // finished, or the min-height it leaves on its container.
+  const mount = document.createElement('div');
+  host.replaceChildren(mount);
+  host.style.minHeight = '';
 
   const base = getApexBase();
-  const chart = new ApexCharts(el, {
+  const chart = new ApexCharts(mount, {
     ...base,
     chart: { ...base.chart, type: 'line', height },
     series,

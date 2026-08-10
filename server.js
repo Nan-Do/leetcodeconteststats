@@ -80,12 +80,13 @@ app.use(helmet({
 app.use(compression());
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public'), {
-  maxAge: '1h',
-  setHeaders(res, filePath) {
-    // The entry point names the asset files, so caching it for an hour would
-    // hide a deploy for an hour. It revalidates against its ETag instead, which
-    // costs one 304.
-    if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+  // No filename here carries a content hash, so any max-age at all means a
+  // deploy can leave a browser running the previous app.js against the current
+  // index.html for that long. These files are a few KB; revalidating costs one
+  // 304 each and makes a deploy take effect immediately. The caching that
+  // actually matters is on the API responses, which are immutable per contest.
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-cache');
   },
 }));
 app.use('/api', apiLimiter, apiRouter);

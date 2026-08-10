@@ -6,6 +6,7 @@ CREATE TABLE contest_results (
     contest_id INTEGER,
     user_slug TEXT,
     rank INTEGER NOT NULL,
+    solved INTEGER DEFAULT 0,
     score INTEGER NOT NULL,
     contest_score INTEGER DEFAULT 0,
     finish_time REAL,

@@ -67,6 +67,13 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
 // down is no longer the one it registered.
 const charts = new Map();
 
+// Clicking Load Stats repeatedly starts a request each time -- the button is
+// only disabled while `loading` is true, and against a fast database that is
+// over in a few milliseconds, well before the chart has finished drawing. Each
+// view counts its requests so that one that is no longer the newest drops its
+// results instead of rendering them over the top of a later one.
+const latestRequest = { single: 0, compare: 0 };
+
 // Replaces whatever chart is in `selector` with a new one.
 function drawRankChart(selector, { series, height }) {
   const host = document.querySelector(selector);
@@ -209,6 +216,9 @@ document.addEventListener('alpine:init', () => {
 
     async load() {
       if (!this.search.canSubmit()) return;
+      const request = ++latestRequest.single;
+      const current = () => request === latestRequest.single;
+
       this.loading = true; this.error = null; this.stats = null; this.history = [];
       try {
         const { user_slug, data_region } = await this.search.resolve();
@@ -218,13 +228,17 @@ document.addEventListener('alpine:init', () => {
           fetch(`/api/user/${slug}/stats?region=${region}`),
           fetch(`/api/user/${slug}/history?region=${region}`)
         ]);
+        if (!current()) return;
         if (!sRes.ok) throw new Error((await sRes.json()).error);
         this.stats = await sRes.json();
         this.history = await hRes.json();
         this.loading = false;
         await this.$nextTick();
+        // A newer click during the tick would already be drawing its own chart.
+        if (!current()) return;
         this.renderCharts();
       } catch (e) {
+        if (!current()) return;
         this.error = e.message;
         this.loading = false;
       }
@@ -257,6 +271,9 @@ document.addEventListener('alpine:init', () => {
 
     async compare() {
       if (!this.search1.canSubmit() || !this.search2.canSubmit()) return;
+      const request = ++latestRequest.compare;
+      const current = () => request === latestRequest.compare;
+
       this.loading = true; this.error = null; this.data = null;
       try {
         // Sequential, so the error names the first field that is wrong rather
@@ -268,12 +285,16 @@ document.addEventListener('alpine:init', () => {
           u2: user2.user_slug, r2: user2.data_region,
         });
         const res = await fetch(`/api/compare?${params}`);
+        if (!current()) return;
         if (!res.ok) throw new Error((await res.json()).error);
         this.data = await res.json();
         this.loading = false;
         await this.$nextTick();
+        // A newer click during the tick would already be drawing its own chart.
+        if (!current()) return;
         this.renderCharts();
       } catch (e) {
+        if (!current()) return;
         this.error = e.message;
         this.loading = false;
       }

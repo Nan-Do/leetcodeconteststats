@@ -72,23 +72,101 @@ async function resolveUser(query) {
     ?? null;
 }
 
+// One username field with autocomplete. The single-user view owns one of these
+// and the compare view owns two — the same nine lines used to be written out
+// three times, which is how the copies drifted apart and only one of them ended
+// up double-submitting on Enter.
+function userSearch() {
+  // Neither of these is UI state, so they stay out of the reactive object.
+  let debounceTimer = null;
+  let latestRequest = 0;
+
+  return {
+    query: '',
+    suggestions: [],
+    highlightIndex: -1,
+    selected: null,
+
+    canSubmit() {
+      return this.query.length >= MIN_QUERY_LENGTH;
+    },
+
+    close() {
+      this.suggestions = [];
+      this.highlightIndex = -1;
+    },
+
+    onInput() {
+      clearTimeout(debounceTimer);
+      this.selected = null;
+      this.highlightIndex = -1;
+      if (this.query.length < MIN_QUERY_LENGTH) { this.suggestions = []; return; }
+
+      debounceTimer = setTimeout(async () => {
+        // Debouncing spaces requests out but doesn't order them: a slow reply
+        // for "lar" can still land after a fast one for "larryny" and replace
+        // the list. Only the newest request may write, and a failed one clears
+        // rather than leaving stale names on screen.
+        const request = ++latestRequest;
+        let results = [];
+        try {
+          const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query)}`);
+          if (res.ok) results = await res.json();
+        } catch { /* offline: fall through to the empty list */ }
+        if (request === latestRequest) this.suggestions = results;
+      }, 250);
+    },
+
+    pick(u) {
+      this.query = u.user_slug;
+      this.selected = u;
+      this.close();
+    },
+
+    // Returns 'picked' when Enter took a suggestion, 'submit' when it should run
+    // the view's action, and null otherwise. What each means is the one thing
+    // the two views legitimately disagree about, so the caller decides.
+    onKeydown(e) {
+      if (e.key === 'ArrowDown' && this.suggestions.length) {
+        e.preventDefault();
+        this.highlightIndex = Math.min(this.highlightIndex + 1, this.suggestions.length - 1);
+      } else if (e.key === 'ArrowUp' && this.suggestions.length) {
+        e.preventDefault();
+        this.highlightIndex = Math.max(this.highlightIndex - 1, -1);
+      } else if (e.key === 'Escape') {
+        this.close();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this.highlightIndex >= 0) { this.pick(this.suggestions[this.highlightIndex]); return 'picked'; }
+        this.close();
+        return 'submit';
+      }
+      return null;
+    },
+
+    // Turns the typed text into a real account, remembering the answer so a
+    // second submit doesn't search again.
+    async resolve() {
+      if (!this.selected) {
+        this.selected = await resolveUser(this.query);
+        if (!this.selected) throw new Error(`User "${this.query}" not found`);
+      }
+      return this.selected;
+    },
+  };
+}
+
 document.addEventListener('alpine:init', () => {
 
   // ── Single User View ──────────────────────────────────────────────
   Alpine.data('singleUser', () => ({
     activeTab: 'single',
-    query: '',
-    suggestions: [],
-    highlightIndex: -1,
-    selectedUser: null,
+    search: userSearch(),
     loading: false,
     error: null,
     stats: null,
     history: [],
     chart: null,
-    globalChart: null,
-    debounceTimer: null,
-    minLength: MIN_QUERY_LENGTH,
 
     init() {
       window.addEventListener('themechange', () => {
@@ -96,41 +174,11 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    async onInput() {
-      this.selectedUser = null;
-      this.highlightIndex = -1;
-      clearTimeout(this.debounceTimer);
-      if (this.query.length < MIN_QUERY_LENGTH) { this.suggestions = []; return; }
-      this.debounceTimer = setTimeout(async () => {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query)}`);
-        this.suggestions = await res.json();
-      }, 250);
-    },
-
-    selectSuggestion(u) {
-      this.query = u.user_slug;
-      this.selectedUser = u;
-      this.suggestions = [];
-      this.highlightIndex = -1;
-      this.load();
-    },
-
-    onKeydown(e) {
-      if (!this.suggestions.length) return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); this.highlightIndex = Math.min(this.highlightIndex + 1, this.suggestions.length - 1); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); this.highlightIndex = Math.max(this.highlightIndex - 1, -1); }
-      else if (e.key === 'Enter' && this.highlightIndex >= 0) { e.preventDefault(); this.selectSuggestion(this.suggestions[this.highlightIndex]); }
-    },
-
     async load() {
-      if (this.query.length < MIN_QUERY_LENGTH) return;
+      if (!this.search.canSubmit()) return;
       this.loading = true; this.error = null; this.stats = null; this.history = [];
       try {
-        if (!this.selectedUser) {
-          this.selectedUser = await resolveUser(this.query);
-          if (!this.selectedUser) throw new Error(`User "${this.query}" not found`);
-        }
-        const { user_slug, data_region } = this.selectedUser;
+        const { user_slug, data_region } = await this.search.resolve();
         const slug = encodeURIComponent(user_slug);
         const region = encodeURIComponent(data_region);
         const [sRes, hRes] = await Promise.all([
@@ -170,15 +218,11 @@ document.addEventListener('alpine:init', () => {
   // ── Compare View ─────────────────────────────────────────────────
   Alpine.data('compareUsers', () => ({
     activeTab: 'single',
-    query1: '', query2: '',
-    suggestions1: [], suggestions2: [],
-    highlightIndex1: -1, highlightIndex2: -1,
-    user1: null, user2: null,
+    search1: userSearch(),
+    search2: userSearch(),
     loading: false, error: null,
     data: null,
     chart: null,
-    debounceTimer1: null, debounceTimer2: null,
-    minLength: MIN_QUERY_LENGTH,
 
     init() {
       window.addEventListener('themechange', () => {
@@ -186,58 +230,17 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    async onInput1() {
-      this.user1 = null;
-      this.highlightIndex1 = -1;
-      clearTimeout(this.debounceTimer1);
-      if (this.query1.length < MIN_QUERY_LENGTH) { this.suggestions1 = []; return; }
-      this.debounceTimer1 = setTimeout(async () => {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query1)}`);
-        this.suggestions1 = await res.json();
-      }, 250);
-    },
-
-    async onInput2() {
-      this.user2 = null;
-      this.highlightIndex2 = -1;
-      clearTimeout(this.debounceTimer2);
-      if (this.query2.length < MIN_QUERY_LENGTH) { this.suggestions2 = []; return; }
-      this.debounceTimer2 = setTimeout(async () => {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.query2)}`);
-        this.suggestions2 = await res.json();
-      }, 250);
-    },
-
-    selectSuggestion1(u) { this.query1 = u.user_slug; this.user1 = u; this.suggestions1 = []; this.highlightIndex1 = -1; },
-    selectSuggestion2(u) { this.query2 = u.user_slug; this.user2 = u; this.suggestions2 = []; this.highlightIndex2 = -1; },
-
-    onKeydown1(e) {
-      if (e.key === 'ArrowDown' && this.suggestions1.length) { e.preventDefault(); this.highlightIndex1 = Math.min(this.highlightIndex1 + 1, this.suggestions1.length - 1); }
-      else if (e.key === 'ArrowUp' && this.suggestions1.length) { e.preventDefault(); this.highlightIndex1 = Math.max(this.highlightIndex1 - 1, -1); }
-      else if (e.key === 'Enter') { e.preventDefault(); if (this.highlightIndex1 >= 0) { this.selectSuggestion1(this.suggestions1[this.highlightIndex1]); } else { this.suggestions1 = []; this.compare(); } }
-    },
-
-    onKeydown2(e) {
-      if (e.key === 'ArrowDown' && this.suggestions2.length) { e.preventDefault(); this.highlightIndex2 = Math.min(this.highlightIndex2 + 1, this.suggestions2.length - 1); }
-      else if (e.key === 'ArrowUp' && this.suggestions2.length) { e.preventDefault(); this.highlightIndex2 = Math.max(this.highlightIndex2 - 1, -1); }
-      else if (e.key === 'Enter') { e.preventDefault(); if (this.highlightIndex2 >= 0) { this.selectSuggestion2(this.suggestions2[this.highlightIndex2]); } else { this.suggestions2 = []; this.compare(); } }
-    },
-
     async compare() {
-      if (this.query1.length < MIN_QUERY_LENGTH || this.query2.length < MIN_QUERY_LENGTH) return;
+      if (!this.search1.canSubmit() || !this.search2.canSubmit()) return;
       this.loading = true; this.error = null; this.data = null;
       try {
-        if (!this.user1) {
-          this.user1 = await resolveUser(this.query1);
-          if (!this.user1) throw new Error(`User "${this.query1}" not found`);
-        }
-        if (!this.user2) {
-          this.user2 = await resolveUser(this.query2);
-          if (!this.user2) throw new Error(`User "${this.query2}" not found`);
-        }
+        // Sequential, so the error names the first field that is wrong rather
+        // than whichever request happens to fail first.
+        const user1 = await this.search1.resolve();
+        const user2 = await this.search2.resolve();
         const params = new URLSearchParams({
-          u1: this.user1.user_slug, r1: this.user1.data_region,
-          u2: this.user2.user_slug, r2: this.user2.data_region,
+          u1: user1.user_slug, r1: user1.data_region,
+          u2: user2.user_slug, r2: user2.data_region,
         });
         const res = await fetch(`/api/compare?${params}`);
         if (!res.ok) throw new Error((await res.json()).error);

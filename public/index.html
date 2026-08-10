@@ -33,10 +33,10 @@
       <div class="search-row">
         <div class="field pos-relative">
           <label>Username</label>
-          <input type="text" x-model="query" @input="onInput()" placeholder="e.g. LarryNY" autocomplete="off" @keydown.escape="suggestions = []; highlightIndex = -1" @keydown="onKeydown($event)" @keydown.enter.prevent="if(!suggestions.length || highlightIndex < 0) { suggestions = []; load(); }" />
-          <ul class="autocomplete-list" style="display:none" x-show="suggestions.length > 0" @click.outside="suggestions = []">
-            <template x-for="(u, i) in suggestions" :key="u.user_slug + u.data_region">
-              <li @click="selectSuggestion(u)" :class="{ highlighted: highlightIndex === i }">
+          <input type="text" x-model="search.query" @input="search.onInput()" placeholder="e.g. LarryNY" autocomplete="off" @keydown="if (search.onKeydown($event)) load()" />
+          <ul class="autocomplete-list" style="display:none" x-show="search.suggestions.length > 0" @click.outside="search.close()">
+            <template x-for="(u, i) in search.suggestions" :key="u.user_slug + u.data_region">
+              <li @click="search.pick(u); load()" :class="{ highlighted: search.highlightIndex === i }">
                 <span x-text="u.user_slug"></span>
                 <span class="region-badge" x-text="u.data_region"></span>
               </li>
@@ -45,7 +45,7 @@
         </div>
         <div class="field-btn-wrap">
           <label class="label-spacer" aria-hidden="true">Username</label>
-          <button class="btn btn-primary" @click="load()" :disabled="query.length < minLength || loading">
+          <button class="btn btn-primary" @click="load()" :disabled="!search.canSubmit() || loading">
             <span x-show="!loading">Load Stats</span>
             <span style="display:none" x-show="loading">Loading...</span>
           </button>
@@ -114,10 +114,10 @@
       <div class="search-row">
         <div class="field pos-relative">
           <label style="color: #f89f1b">User 1</label>
-          <input type="text" x-model="query1" @input="onInput1()" placeholder="First user" autocomplete="off" @keydown.escape="suggestions1 = []; highlightIndex1 = -1" @keydown="onKeydown1($event)" />
-          <ul class="autocomplete-list" style="display:none" x-show="suggestions1.length > 0" @click.outside="suggestions1 = []">
-            <template x-for="(u, i) in suggestions1" :key="u.user_slug + u.data_region">
-              <li @click="selectSuggestion1(u)" :class="{ highlighted: highlightIndex1 === i }">
+          <input type="text" x-model="search1.query" @input="search1.onInput()" placeholder="First user" autocomplete="off" @keydown="if (search1.onKeydown($event) === 'submit') compare()" />
+          <ul class="autocomplete-list" style="display:none" x-show="search1.suggestions.length > 0" @click.outside="search1.close()">
+            <template x-for="(u, i) in search1.suggestions" :key="u.user_slug + u.data_region">
+              <li @click="search1.pick(u)" :class="{ highlighted: search1.highlightIndex === i }">
                 <span x-text="u.user_slug"></span>
                 <span class="region-badge" x-text="u.data_region"></span>
               </li>
@@ -126,10 +126,10 @@
         </div>
         <div class="field pos-relative">
           <label style="color: #00b8d9">User 2</label>
-          <input type="text" x-model="query2" @input="onInput2()" placeholder="Second user" autocomplete="off" @keydown.escape="suggestions2 = []; highlightIndex2 = -1" @keydown="onKeydown2($event)" />
-          <ul class="autocomplete-list" style="display:none" x-show="suggestions2.length > 0" @click.outside="suggestions2 = []">
-            <template x-for="(u, i) in suggestions2" :key="u.user_slug + u.data_region">
-              <li @click="selectSuggestion2(u)" :class="{ highlighted: highlightIndex2 === i }">
+          <input type="text" x-model="search2.query" @input="search2.onInput()" placeholder="Second user" autocomplete="off" @keydown="if (search2.onKeydown($event) === 'submit') compare()" />
+          <ul class="autocomplete-list" style="display:none" x-show="search2.suggestions.length > 0" @click.outside="search2.close()">
+            <template x-for="(u, i) in search2.suggestions" :key="u.user_slug + u.data_region">
+              <li @click="search2.pick(u)" :class="{ highlighted: search2.highlightIndex === i }">
                 <span x-text="u.user_slug"></span>
                 <span class="region-badge" x-text="u.data_region"></span>
               </li>
@@ -138,7 +138,7 @@
         </div>
         <div class="field-btn-wrap">
           <label class="label-spacer" aria-hidden="true">User 1</label>
-          <button class="btn btn-primary" @click="compare()" :disabled="query1.length < minLength || query2.length < minLength || loading">
+          <button class="btn btn-primary" @click="compare()" :disabled="!search1.canSubmit() || !search2.canSubmit() || loading">
             <span x-show="!loading">Compare</span>
             <span style="display:none" x-show="loading">Loading...</span>
           </button>

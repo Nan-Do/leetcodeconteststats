@@ -31,8 +31,12 @@ CREATE INDEX idx_contest_results_user_search
 ON contest_results (user_slug COLLATE NOCASE, data_region);
 
 -- Step 6: Make sure the database is ready to be uploaded to Turso
-PRAGMA journal_mode = WAL;
--- PRAGMA wal_checkpoint(TRUNCATE);
+PRAGMA journal_mode = DELETE;
+PRAGMA page_size = 4096;
+PRAGMA auto_vacuum = 0;
+PRAGMA encoding = 'UTF-8';
+VACUUM;
 
 -- Step 7: Optimize the space
-VACUUM;
+PRAGMA journal_mode = WAL;
+PRAGMA optimize

@@ -61,6 +61,37 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   </div>`;
 }
 
+// Chart instances live here rather than on the Alpine components. Assigning one
+// to component state wraps it in Alpine's reactivity Proxy, and ApexCharts keys
+// its internal state by object identity, so the instance it is asked to tear
+// down is no longer the one it registered.
+const charts = new Map();
+
+// Replaces whatever chart is in `selector` with a new one.
+function drawRankChart(selector, { series, height }) {
+  const el = document.querySelector(selector);
+  charts.get(selector)?.destroy();
+  charts.delete(selector);
+
+  // ApexCharts empties the container and drops the min-height it set during
+  // render inside one `if` that only runs while it can still find its own SVG.
+  // When that check fails nothing is cleaned up, so the previous chart stays on
+  // the page and the new one renders below it. Reset both by hand.
+  el.replaceChildren();
+  el.style.minHeight = '';
+
+  const base = getApexBase();
+  const chart = new ApexCharts(el, {
+    ...base,
+    chart: { ...base.chart, type: 'line', height },
+    series,
+    yaxis: { ...base.yaxis, title: { text: 'Rank (lower = better)', style: { color: base.chart.foreColor } } },
+    tooltip: { ...base.tooltip, custom: rankTooltipHtml },
+  });
+  charts.set(selector, chart);
+  chart.render();
+}
+
 async function resolveUser(query) {
   const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
   if (!res.ok) throw new Error(`Could not look up "${query}"`);
@@ -166,7 +197,6 @@ document.addEventListener('alpine:init', () => {
     error: null,
     stats: null,
     history: [],
-    chart: null,
 
     init() {
       window.addEventListener('themechange', () => {
@@ -198,17 +228,10 @@ document.addEventListener('alpine:init', () => {
     },
 
     renderCharts() {
-      if (this.chart) { this.chart.destroy(); this.chart = null; }
-
-      const base = getApexBase();
-      this.chart = new ApexCharts(document.querySelector('#rankChart'), {
-        ...base,
-        chart: { ...base.chart, type: 'line', height: 320 },
+      drawRankChart('#rankChart', {
+        height: 320,
         series: [{ name: 'Contest Rank', data: historyToSeries(this.history, 'rank'), color: CHART_COLORS.u1 }],
-        yaxis: { ...base.yaxis, title: { text: 'Rank (lower = better)', style: { color: base.chart.foreColor } } },
-        tooltip: { ...base.tooltip, custom: rankTooltipHtml },
       });
-      this.chart.render();
     },
 
     formatDate,
@@ -222,7 +245,6 @@ document.addEventListener('alpine:init', () => {
     search2: userSearch(),
     loading: false, error: null,
     data: null,
-    chart: null,
 
     init() {
       window.addEventListener('themechange', () => {
@@ -255,19 +277,13 @@ document.addEventListener('alpine:init', () => {
     },
 
     renderCharts() {
-      if (this.chart) { this.chart.destroy(); this.chart = null; }
-
-      const base = getApexBase();
-      const s1 = { name: this.data.user1.stats.user_slug, data: historyToSeries(this.data.user1.history, 'rank'), color: CHART_COLORS.u1 };
-      const s2 = { name: this.data.user2.stats.user_slug, data: historyToSeries(this.data.user2.history, 'rank'), color: CHART_COLORS.u2 };
-      this.chart = new ApexCharts(document.querySelector('#compareRankChart'), {
-        ...base,
-        chart: { ...base.chart, type: 'line', height: 360 },
-        series: [s1, s2],
-        yaxis: { ...base.yaxis, title: { text: 'Rank (lower = better)', style: { color: base.chart.foreColor } } },
-        tooltip: { ...base.tooltip, custom: rankTooltipHtml },
+      drawRankChart('#compareRankChart', {
+        height: 360,
+        series: [
+          { name: this.data.user1.stats.user_slug, data: historyToSeries(this.data.user1.history, 'rank'), color: CHART_COLORS.u1 },
+          { name: this.data.user2.stats.user_slug, data: historyToSeries(this.data.user2.history, 'rank'), color: CHART_COLORS.u2 },
+        ],
       });
-      this.chart.render();
     },
   }));
 

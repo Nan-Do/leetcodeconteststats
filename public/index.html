@@ -68,13 +68,17 @@
           <div class="value" x-text="shownStats.total_contests"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Best Rank</div>
-          <div class="value" x-text="dash(shownStats.best_rank, '#')"></div>
-          <div class="sub" x-text="bestRankPct()"></div>
+          <div class="label">Contest Rank (Best/Avg)</div>
+          <div class="value dual" x-text="rankValue()"></div>
+          <div class="sub" x-text="rankSub()"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Avg Finish Rank</div>
-          <div class="value" x-text="dash(shownStats.avg_rank, '#')"></div>
+          <div class="label">Rating</div>
+          <div class="value" x-text="ratingText()"></div>
+          <div class="sub">
+            <template x-if="badge"><span class="badge" :class="badge.cls" x-text="badge.name"></span></template>
+            <span x-text="ranking ? 'Top ' + ranking.topPercentage + '%' : ''"></span>
+          </div>
         </div>
         <div class="stat-card">
           <div class="label">AK / Wins</div>
@@ -101,12 +105,22 @@
       </div>
 
       <div class="filter-bar">
-        <label class="switch" title="Contests the user registered for but scored nothing in — a no-show, or an attempt with no submissions. They are ranked near the bottom of the field, which drags the averages down and stretches the chart's rank axis.">
-          <input type="checkbox" x-model="filter.on" @change="filter.remember(); renderCharts()" />
-          <span class="switch-track"><span class="switch-thumb"></span></span>
-          <span class="switch-text">Hide skipped contests</span>
-        </label>
-        <span class="filter-note" x-text="filterNote()"></span>
+        <div class="filter-row">
+          <label class="switch" title="Contests the user registered for but scored nothing in — a no-show, or an attempt with no submissions. They are ranked near the bottom of the field, which drags the averages down and stretches the chart's rank axis. Drawn as a hollow dot.">
+            <input type="checkbox" x-model="filter.hideSkipped" @change="filter.remember(); renderCharts()" />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-text">Hide skipped contests</span>
+          </label>
+          <span class="filter-note" x-text="filterNote()"></span>
+        </div>
+        <div class="filter-row" style="display:none" x-show="ranking">
+          <label class="switch" title="Contests the user competed in that LeetCode never rated — a broken problem, a leak, an outage during the window. The result stands, the rating never moved. Drawn as a violet square.">
+            <input type="checkbox" x-model="filter.hideUnrated" @change="filter.remember(); renderCharts()" />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-text">Hide unrated contests</span>
+          </label>
+          <span class="filter-note" x-text="unratedNote()"></span>
+        </div>
       </div>
     </div>
 
@@ -165,6 +179,10 @@
         <div class="compare-col u1">
           <div class="col-header" x-text="data.user1.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="stats(1).total_contests"></span></div>
+          <div class="stat-row"><span class="skey">Rating</span><span class="sval">
+            <span x-text="ratingText(1)"></span>
+            <template x-if="badge(1)"><span class="badge" :class="badge(1).cls" x-text="badge(1).name"></span></template>
+          </span></div>
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="dash(stats(1).best_rank, '#')"></span></div>
           <div class="stat-row"><span class="skey">Avg Finish Rank</span><span class="sval" x-text="dash(stats(1).avg_rank, '#')"></span></div>
           <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user2.stats.user_slug"></span><span class="sval" x-text="wins(1)"></span></div>
@@ -176,6 +194,10 @@
         <div class="compare-col u2">
           <div class="col-header" x-text="data.user2.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="stats(2).total_contests"></span></div>
+          <div class="stat-row"><span class="skey">Rating</span><span class="sval">
+            <span x-text="ratingText(2)"></span>
+            <template x-if="badge(2)"><span class="badge" :class="badge(2).cls" x-text="badge(2).name"></span></template>
+          </span></div>
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="dash(stats(2).best_rank, '#')"></span></div>
           <div class="stat-row"><span class="skey">Avg Finish Rank</span><span class="sval" x-text="dash(stats(2).avg_rank, '#')"></span></div>
           <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user1.stats.user_slug"></span><span class="sval" x-text="wins(2)"></span></div>
@@ -194,12 +216,22 @@
       </div>
 
       <div class="filter-bar">
-        <label class="switch" title="Contests a user registered for but scored nothing in — a no-show, or an attempt with no submissions. Hiding them also drops them from the head-to-head count, where a contest one of the two sat out is not a rank the other beat them to.">
-          <input type="checkbox" x-model="filter.on" @change="filter.remember(); renderCharts()" />
-          <span class="switch-track"><span class="switch-thumb"></span></span>
-          <span class="switch-text">Hide skipped contests</span>
-        </label>
-        <span class="filter-note" x-text="filterNote()"></span>
+        <div class="filter-row">
+          <label class="switch" title="Contests a user registered for but scored nothing in — a no-show, or an attempt with no submissions. Hiding them also drops them from the head-to-head count, where a contest one of the two sat out is not a rank the other beat them to.">
+            <input type="checkbox" x-model="filter.hideSkipped" @change="filter.remember(); renderCharts()" />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-text">Hide skipped contests</span>
+          </label>
+          <span class="filter-note" x-text="filterNote()"></span>
+        </div>
+        <div class="filter-row" style="display:none" x-show="hasRatingData()">
+          <label class="switch" title="Contests LeetCode never rated — the results stand, nobody's rating moved. Hiding them also drops them from the head-to-head count. Drawn as a violet square.">
+            <input type="checkbox" x-model="filter.hideUnrated" @change="filter.remember(); renderCharts()" />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-text">Hide unrated contests</span>
+          </label>
+          <span class="filter-note" x-text="unratedNote()"></span>
+        </div>
       </div>
     </div>
 

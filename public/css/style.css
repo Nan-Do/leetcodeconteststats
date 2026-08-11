@@ -9,6 +9,10 @@
   --text-muted: #7a7f9a;
   --success: #36b37e;
   --danger: #ff5630;
+  /* LeetCode's two contest badges, and the contests it never rated. */
+  --knight: #d9a441;
+  --guardian: #6ea8ff;
+  --unrated: #8a63d2;
   --radius: 12px;
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
 }
@@ -21,6 +25,11 @@ body.light {
   --text: #1a1d27;
   --text-muted: #5a6080;
   --shadow: 0 4px 24px rgba(0,0,0,0.1);
+  /* Darkened against white: the same hues at the dark theme's lightness are
+     barely there on this background. */
+  --knight: #9a6d0f;
+  --guardian: #2b6fd6;
+  --unrated: #6b45b8;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -210,18 +219,54 @@ select option { background: var(--surface2); }
 }
 
 .stat-card .value.u2 { color: var(--accent2); }
-.stat-card .sub { font-size: 0.78rem; color: var(--text-muted); }
+
+/* Two figures where the other cards carry one. Set a size down so that a
+   four-digit rank next to a five-digit one still fits the card. */
+.stat-card .value.dual { font-size: 1.35rem; line-height: 1.25; }
+
+.stat-card .sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 1.1rem;
+}
+
+/* Knight and Guardian, and whatever LeetCode adds next -- an unrecognised badge
+   keeps the chip and takes the text colour it sits on. */
+.badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  color: var(--text-muted);
+}
+
+.badge-knight { color: var(--knight); }
+.badge-guardian { color: var(--guardian); }
 
 .filter-bar {
   display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.7rem 1.1rem;
   margin-bottom: 1.5rem;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
 }
 
 .filter-note {
@@ -308,7 +353,7 @@ select option { background: var(--surface2); }
 }
 
 .stat-row .skey { font-size: 0.82rem; color: var(--text-muted); }
-.stat-row .sval { font-size: 0.95rem; font-weight: 600; }
+.stat-row .sval { font-size: 0.95rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; }
 
 .error-msg {
   background: rgba(255, 86, 48, 0.1);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { findUserCandidates, getUserHistory, getUserStats, searchUsers } from '../db.js';
+import { findUserCandidates, getUserHistory, getUserStats, hasAttended, searchUsers } from '../db.js';
 
 const router = Router();
 
@@ -48,6 +48,22 @@ async function resolveUser(userSlug, region) {
   return candidates[0];
 }
 
+// Counts how many contests each of the two finished ahead of the other. Only a
+// contest they both took part in can be won, and a tie is won by neither.
+function headToHead(history1, history2) {
+  const ranks = new Map(history2.map((contest) => [contest.contest_slug, contest.rank]));
+
+  let user1 = 0;
+  let user2 = 0;
+  for (const contest of history1) {
+    const rival = ranks.get(contest.contest_slug);
+    if (rival === undefined) continue;
+    if (contest.rank < rival) user1 += 1;
+    else if (rival < contest.rank) user2 += 1;
+  }
+  return { user1, user2 };
+}
+
 // Express 5 forwards a rejected async handler to the error middleware below, so
 // these routes throw rather than each carrying its own try/catch.
 router.get('/users/search', async (req, res) => {
@@ -84,24 +100,16 @@ router.get('/compare', async (req, res) => {
     getUserStats(user2.user_slug, user2.data_region),
   ]);
 
-  const u1_results = new Map();
-  u1_history.forEach((contest) => u1_results.set(contest["contest_slug"], contest["rank"]))
-  const u2_results = new Map();
-  u2_history.forEach((contest) => u2_results.set(contest["contest_slug"], contest["rank"]))
-
-  let u1_victories = 0;
-  for (const [contest_slug, rank] of u1_results) {
-    if (u2_results.has(contest_slug) && rank < u2_results.get(contest_slug)) u1_victories += 1;
-  }
-  let u2_victories = 0;
-  for (const [contest_slug, rank] of u2_results) {
-    if (u1_results.has(contest_slug) && rank < u1_results.get(contest_slug)) u2_victories += 1;
-  }
-
   res.json({
     user1: { history: u1_history, stats: u1_stats },
     user2: { history: u2_history, stats: u2_stats },
-    wins: { user1: u1_victories, user2: u2_victories },
+    // Both tallies, so the client's "hide skipped contests" toggle can switch
+    // between them without asking again. They differ because a contest one of
+    // them sat out is not a contest the other beat them in.
+    wins: {
+      all: headToHead(u1_history, u2_history),
+      attended: headToHead(u1_history.filter(hasAttended), u2_history.filter(hasAttended)),
+    },
   });
 });
 

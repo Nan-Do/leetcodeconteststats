@@ -1,4 +1,6 @@
-const CHART_COLORS = { u1: '#f89f1b', u2: '#00b8d9' };
+// `best` is --success from the stylesheet: the one point on a line that is worth
+// looking at on its own, in a colour neither user's line can be confused with.
+const CHART_COLORS = { u1: '#f89f1b', u2: '#00b8d9', best: '#36b37e' };
 
 // Must match MIN_QUERY_LENGTH in routes/api.js — searching below the server's
 // own minimum returns an empty list, which reads as "no such user".
@@ -68,6 +70,12 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   const rank = series[seriesIndex][dataPointIndex];
   const date = new Date(point.x).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
+  // Says why the point is marked out from the rest of the line, in the colour it
+  // is marked in.
+  const note = point.skipped ? { text: 'Skipped — no score in this contest', color: muted }
+    : point.best ? { text: 'Best rank on the chart', color: CHART_COLORS.best }
+      : null;
+
   const row = (label, value) =>
     `<div style="display:flex;justify-content:space-between;gap:16px;padding:2px 0">
        <span style="color:${muted}">${label}</span>
@@ -84,7 +92,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Solved:', `${point.solved}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', `${point.total_time}`)}
-    ${point.skipped ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};color:${muted};font-size:11px">Skipped — no score in this contest</div>` : ''}
+    ${note ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};color:${note.color};font-size:11px">${note.text}</div>` : ''}
   </div>`;
 }
 
@@ -119,16 +127,26 @@ function drawRankChart(selector, { series, height }) {
 
   const base = getApexBase();
 
-  // While skipped contests are being shown they are the one thing on this chart
-  // worth marking: a hollow grey dot reads as "no result", where a filled one
-  // reads as a genuinely terrible one. Empty once they are filtered out, which
-  // leaves every remaining point on the default marker.
-  const skipped = [];
-  series.forEach((s, seriesIndex) => s.data.forEach((point, dataPointIndex) => {
-    if (point.skipped) {
-      skipped.push({ seriesIndex, dataPointIndex, size: 5, fillColor: base.chart.background, strokeColor: base.chart.foreColor });
-    }
-  }));
+  // Two points on a line are worth picking out of it, and marking both is what
+  // makes each of them mean something: a hollow grey dot for a contest that was
+  // skipped -- "no result", where a filled one would read as a genuinely
+  // terrible one -- and a green one for the best rank on the chart. The best is
+  // taken from the points actually drawn, so a skipped contest can never claim
+  // it, and a rank matched more than once is marked every time it was reached.
+  const marks = [];
+  series.forEach((s, seriesIndex) => {
+    const best = Math.min(...s.data.filter(point => !point.skipped).map(point => point.y));
+    s.data.forEach((point, dataPointIndex) => {
+      if (point.skipped) {
+        marks.push({ seriesIndex, dataPointIndex, size: 4, fillColor: base.chart.background, strokeColor: base.chart.foreColor });
+      } else if (point.y === best) {
+        // Read back by the tooltip. Set before the chart is handed the series,
+        // so it is there whether or not ApexCharts copies the points.
+        point.best = true;
+        marks.push({ seriesIndex, dataPointIndex, size: 5, fillColor: CHART_COLORS.best, strokeColor: base.chart.background });
+      }
+    });
+  });
 
   const chart = new ApexCharts(mount, {
     ...base,
@@ -136,7 +154,7 @@ function drawRankChart(selector, { series, height }) {
     series,
     yaxis: { ...base.yaxis, title: { text: 'Rank (lower = better)', style: { color: base.chart.foreColor } } },
     tooltip: { ...base.tooltip, custom: rankTooltipHtml },
-    markers: { ...base.markers, discrete: skipped },
+    markers: { ...base.markers, discrete: marks },
   });
   charts.set(selector, chart);
   chart.render();

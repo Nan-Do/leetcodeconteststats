@@ -73,7 +73,7 @@
           <div class="sub" x-text="bestRankPct()"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Avg Rank</div>
+          <div class="label">Avg Finish Rank</div>
           <div class="value" x-text="dash(shownStats.avg_rank, '#')"></div>
         </div>
         <div class="stat-card">
@@ -166,7 +166,7 @@
           <div class="col-header" x-text="data.user1.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="stats(1).total_contests"></span></div>
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="dash(stats(1).best_rank, '#')"></span></div>
-          <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="dash(stats(1).avg_rank, '#')"></span></div>
+          <div class="stat-row"><span class="skey">Avg Finish Rank</span><span class="sval" x-text="dash(stats(1).avg_rank, '#')"></span></div>
           <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user2.stats.user_slug"></span><span class="sval" x-text="wins(1)"></span></div>
           <div class="stat-row"><span class="skey">AK</span><span class="sval" x-text="stats(1).ak_count"></span></div>
           <div class="stat-row"><span class="skey">Wins</span><span class="sval" x-text="stats(1).wins_count"></span></div>
@@ -177,7 +177,7 @@
           <div class="col-header" x-text="data.user2.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="stats(2).total_contests"></span></div>
           <div class="stat-row"><span class="skey">Best Rank</span><span class="sval" x-text="dash(stats(2).best_rank, '#')"></span></div>
-          <div class="stat-row"><span class="skey">Avg Rank</span><span class="sval" x-text="dash(stats(2).avg_rank, '#')"></span></div>
+          <div class="stat-row"><span class="skey">Avg Finish Rank</span><span class="sval" x-text="dash(stats(2).avg_rank, '#')"></span></div>
           <div class="stat-row"><span class="skey" x-text="'Wins over ' + data.user1.stats.user_slug"></span><span class="sval" x-text="wins(2)"></span></div>
           <div class="stat-row"><span class="skey">AK</span><span class="sval" x-text="stats(2).ak_count"></span></div>
           <div class="stat-row"><span class="skey">Wins</span><span class="sval" x-text="stats(2).wins_count"></span></div>

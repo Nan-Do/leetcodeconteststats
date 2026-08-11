@@ -13,8 +13,10 @@ A web application to explore and compare LeetCode contest performance. Search fo
 ## Features
 
 - **User stats** — contests played, best/avg rank, wins, best/avg score, top 500 finishes
+- **Contest rating** — the user's LeetCode rating and Knight/Guardian badge, and the rating each contest left them on, in the chart tooltip. This comes from leetcode.com, which knows nothing about CN accounts, so those cards stay empty for them
 - **Contest history chart** — interactive rank progression over time (zoom, pan, reset)
 - **Skipped contests filter** — registering and not turning up still scores a rank near the bottom of the field. Those contests are hidden by default, from the chart and from every figure derived from it; the switch under the chart puts them back, and remembers which way you like it
+- **Unrated contests filter** — LeetCode occasionally leaves a contest unrated: the results stand, but nobody's rating moved. Those are drawn as violet squares and counted like any other contest, and the second switch takes them out of the chart and the figures for a view of the history as the rating saw it
 - **Head-to-head comparison** — compare two users across shared contests
 - **Autocomplete search** — fast user lookup with region badges
 - **Light / Dark theme** — persisted via localStorage
@@ -72,7 +74,8 @@ The server starts on port `3000` by default. Open [http://localhost:3000](http:/
 
 ```
 ├── server.js          # Express app setup and middleware
-├── db.js              # Database queries
+├── db.js              # Database queries and the stats folded out of them
+├── leetcode.js        # LeetCode's GraphQL API: ratings, and which contests it rated
 ├── routes/
 │   └── api.js         # API route handlers
 └── public/

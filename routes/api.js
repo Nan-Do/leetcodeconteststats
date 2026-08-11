@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { findUserCandidates, getUserHistory, getUserStats, hasAttended, searchUsers } from '../db.js';
+import { annotateHistory, computeStats, CONTEST_SETS, findUserCandidates, getUserHistory, searchUsers } from '../db.js';
+import { getContestRanking } from '../leetcode.js';
 
 const router = Router();
 
@@ -48,6 +49,26 @@ async function resolveUser(userSlug, region) {
   return candidates[0];
 }
 
+// Everything a view knows about one user: the database's own record of their
+// contests, with LeetCode's rating for each folded in, plus the profile summary
+// the rating card shows. `ranking` is null for a CN account, which leetcode.com
+// knows nothing about, and for a lookup that failed.
+async function loadUser(user) {
+  const [history, contestRanking] = await Promise.all([
+    getUserHistory(user.user_slug, user.data_region),
+    getContestRanking(user.user_slug, user.data_region),
+  ]);
+  return {
+    history: annotateHistory(history, contestRanking),
+    ranking: contestRanking?.ranking ?? null,
+  };
+}
+
+function userStats(user, { history, ranking }) {
+  const stats = computeStats(history);
+  return stats && { user_slug: user.user_slug, data_region: user.data_region, ...stats, ranking };
+}
+
 // Counts how many contests each of the two finished ahead of the other. Only a
 // contest they both took part in can be won, and a tie is won by neither.
 function headToHead(history1, history2) {
@@ -64,6 +85,17 @@ function headToHead(history1, history2) {
   return { user1, user2 };
 }
 
+// One tally per way the switches can be set, so the client can flip them
+// without asking again. They differ because a contest one of them sat out, or
+// that nobody was rated for, is not a contest the other beat them in.
+function headToHeadSets(history1, history2) {
+  const wins = {};
+  for (const [name, keep] of Object.entries(CONTEST_SETS)) {
+    wins[name] = headToHead(history1.filter(keep), history2.filter(keep));
+  }
+  return wins;
+}
+
 // Express 5 forwards a rejected async handler to the error middleware below, so
 // these routes throw rather than each carrying its own try/catch.
 router.get('/users/search', async (req, res) => {
@@ -75,12 +107,13 @@ router.get('/users/search', async (req, res) => {
 
 router.get('/user/:userSlug/history', async (req, res) => {
   const user = await resolveUser(req.params.userSlug, str(req.query.region));
-  res.json(await getUserHistory(user.user_slug, user.data_region));
+  const { history } = await loadUser(user);
+  res.json(history);
 });
 
 router.get('/user/:userSlug/stats', async (req, res) => {
   const user = await resolveUser(req.params.userSlug, str(req.query.region));
-  res.json(await getUserStats(user.user_slug, user.data_region));
+  res.json(userStats(user, await loadUser(user)));
 });
 
 router.get('/compare', async (req, res) => {
@@ -93,23 +126,12 @@ router.get('/compare', async (req, res) => {
     resolveUser(u2, str(req.query.r2)),
   ]);
 
-  const [u1_history, u1_stats, u2_history, u2_stats] = await Promise.all([
-    getUserHistory(user1.user_slug, user1.data_region),
-    getUserStats(user1.user_slug, user1.data_region),
-    getUserHistory(user2.user_slug, user2.data_region),
-    getUserStats(user2.user_slug, user2.data_region),
-  ]);
+  const [data1, data2] = await Promise.all([loadUser(user1), loadUser(user2)]);
 
   res.json({
-    user1: { history: u1_history, stats: u1_stats },
-    user2: { history: u2_history, stats: u2_stats },
-    // Both tallies, so the client's "hide skipped contests" toggle can switch
-    // between them without asking again. They differ because a contest one of
-    // them sat out is not a contest the other beat them in.
-    wins: {
-      all: headToHead(u1_history, u2_history),
-      attended: headToHead(u1_history.filter(hasAttended), u2_history.filter(hasAttended)),
-    },
+    user1: { history: data1.history, stats: userStats(user1, data1) },
+    user2: { history: data2.history, stats: userStats(user2, data2) },
+    wins: headToHeadSets(data1.history, data2.history),
   });
 });
 

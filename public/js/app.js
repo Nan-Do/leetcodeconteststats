@@ -1,6 +1,8 @@
 // `best` is --success from the stylesheet: the one point on a line that is worth
 // looking at on its own, in a colour neither user's line can be confused with.
-const CHART_COLORS = { u1: '#f89f1b', u2: '#00b8d9', best: '#36b37e' };
+// `unrated` is the same idea for a contest that never counted -- a violet that
+// is nobody's line and is not the green that means "best".
+const CHART_COLORS = { u1: '#f89f1b', u2: '#00b8d9', best: '#36b37e', unrated: '#8a63d2' };
 
 // Must match MIN_QUERY_LENGTH in routes/api.js — searching below the server's
 // own minimum returns an empty list, which reads as "no such user".
@@ -11,24 +13,35 @@ const MIN_QUERY_LENGTH = 2;
 // handed the previous version's answer for a user it has already looked up. The
 // URL is the cache key, so bumping this retires them. Bump it whenever an
 // endpoint's response shape changes.
-const API_VERSION = 2;
+const API_VERSION = 3;
 
 function apiUrl(path, params = {}) {
   return `/api/${path}?${new URLSearchParams({ ...params, v: API_VERSION })}`;
 }
 
-// Must match the rule db.js applies in SQL: a contest counts as attended when
-// the user scored in it. A row with a score of 0 is a contest they registered
-// for and either sat out or submitted nothing in.
+// Must match the rule db.js applies: a contest counts as attended when the user
+// scored in it. A row with a score of 0 is a contest they registered for and
+// either sat out or submitted nothing in.
 const hasAttended = (contest) => contest.score > 0;
 
+// The server marks a contest unrated when the user scored in it and LeetCode's
+// rated history does not list it. Nothing is marked for a CN account, which
+// leetcode.com has no record of.
+const isRated = (contest) => !contest.unrated;
+
 const SKIP_FILTER_KEY = 'hideSkipped';
+const UNRATED_FILTER_KEY = 'hideUnrated';
 
 // A stat with no contests behind it — every contest hidden, say — has nothing to
 // report rather than a zero.
 const dash = (value, prefix = '') => (value === null || value === undefined ? '—' : prefix + value);
 
 const pct = (part, total) => (total ? ((part / total) * 100).toFixed(1) + '%' : '-');
+
+// LeetCode carries the rating to three decimals and shows it rounded, so the
+// card, the compare column and the chart tooltip all round the same way rather
+// than each picking their own.
+const formatRating = (rating) => (rating === null || rating === undefined ? '—' : Math.round(rating).toLocaleString('en-US'));
 
 function getApexBase() {
   const light = document.body.classList.contains('light');
@@ -55,7 +68,7 @@ function formatDate(unixTs) {
 }
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, skipped: !hasAttended(h) }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h) }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -70,11 +83,13 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   const rank = series[seriesIndex][dataPointIndex];
   const date = new Date(point.x).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-  // Says why the point is marked out from the rest of the line, in the colour it
-  // is marked in.
-  const note = point.skipped ? { text: 'Skipped — no score in this contest', color: muted }
-    : point.best ? { text: 'Best rank on the chart', color: CHART_COLORS.best }
-      : null;
+  // Say why the point is marked out from the rest of the line, each in the
+  // colour it is marked in. A contest can be two of these at once: the best
+  // rank on the chart is worth knowing about whether or not it was ever rated.
+  const notes = [];
+  if (point.skipped) notes.push({ text: 'Skipped — no score in this contest', color: muted });
+  if (point.unrated) notes.push({ text: 'Unrated — the result stands, the rating did not move', color: CHART_COLORS.unrated });
+  if (point.best) notes.push({ text: 'Best rank on the chart', color: CHART_COLORS.best });
 
   const row = (label, value) =>
     `<div style="display:flex;justify-content:space-between;gap:16px;padding:2px 0">
@@ -92,7 +107,10 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Solved:', `${point.solved}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', `${point.total_time}`)}
-    ${note ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};color:${note.color};font-size:11px">${note.text}</div>` : ''}
+    ${point.rating != null ? row('Rating:', formatRating(point.rating)) : ''}
+    ${notes.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};font-size:11px">
+      ${notes.map(note => `<div style="color:${note.color}">${note.text}</div>`).join('')}
+    </div>` : ''}
   </div>`;
 }
 
@@ -127,22 +145,29 @@ function drawRankChart(selector, { series, height }) {
 
   const base = getApexBase();
 
-  // Two points on a line are worth picking out of it, and marking both is what
-  // makes each of them mean something: a hollow grey dot for a contest that was
-  // skipped -- "no result", where a filled one would read as a genuinely
-  // terrible one -- and a green one for the best rank on the chart. The best is
-  // taken from the points actually drawn, so a skipped contest can never claim
-  // it, and a rank matched more than once is marked every time it was reached.
+  // Three points on a line are worth picking out of it, and marking each is what
+  // makes them mean something: a hollow grey dot for a contest that was skipped
+  // -- "no result", where a filled one would read as a genuinely terrible one --
+  // a violet square for one that was never rated, and green for the best rank on
+  // the chart. The best is taken from the points actually drawn, so a skipped
+  // contest can never claim it, and a rank matched more than once is marked
+  // every time it was reached.
+  //
+  // Shape and colour say different things, so the two compose: an unrated
+  // contest that is also the best rank stays a square and turns green.
   const marks = [];
   series.forEach((s, seriesIndex) => {
     const best = Math.min(...s.data.filter(point => !point.skipped).map(point => point.y));
     s.data.forEach((point, dataPointIndex) => {
+      // Read back by the tooltip. Set before the chart is handed the series, so
+      // it is there whether or not ApexCharts copies the points.
+      point.best = !point.skipped && point.y === best;
+
       if (point.skipped) {
         marks.push({ seriesIndex, dataPointIndex, size: 4, fillColor: base.chart.background, strokeColor: base.chart.foreColor });
-      } else if (point.y === best) {
-        // Read back by the tooltip. Set before the chart is handed the series,
-        // so it is there whether or not ApexCharts copies the points.
-        point.best = true;
+      } else if (point.unrated) {
+        marks.push({ seriesIndex, dataPointIndex, size: 5, shape: 'square', fillColor: point.best ? CHART_COLORS.best : CHART_COLORS.unrated, strokeColor: base.chart.background });
+      } else if (point.best) {
         marks.push({ seriesIndex, dataPointIndex, size: 5, fillColor: CHART_COLORS.best, strokeColor: base.chart.background });
       }
     });
@@ -160,32 +185,55 @@ function drawRankChart(selector, { series, height }) {
   chart.render();
 }
 
-// The "hide skipped contests" switch. Both views own one, and it answers the two
-// questions every binding downstream of it asks: which contests to draw, and
-// which of the two blocks of stats the server sent to show.
-function skipFilter() {
+// The two switches under the chart. Both views own a set, and between them they
+// answer every question a binding downstream asks: which contests to draw, and
+// which of the blocks the server sent to read the figures out of.
+function contestFilter() {
   return {
-    // Hidden to begin with. A contest nobody competed in is not a result, and
-    // left in it says more about where the rank axis ends than about anyone's
-    // form. Only an explicit "false" -- the switch turned off on an earlier
-    // visit -- brings them back.
-    on: localStorage.getItem(SKIP_FILTER_KEY) !== 'false',
+    // Skipped contests are hidden to begin with. A contest nobody competed in
+    // is not a result, and left in it says more about where the rank axis ends
+    // than about anyone's form. Only an explicit "false" -- the switch turned
+    // off on an earlier visit -- brings them back.
+    hideSkipped: localStorage.getItem(SKIP_FILTER_KEY) !== 'false',
 
-    // Whether skipped contests are wanted is a standing preference rather than
-    // something to say again for every user looked up, so it persists like the
-    // theme does. The switch has already written `on` through x-model.
+    // Unrated ones are shown to begin with, because they are results: the user
+    // turned up and finished where they finished, and only the rating was left
+    // alone. The switch is for reading the history as LeetCode's rating saw it.
+    hideUnrated: localStorage.getItem(UNRATED_FILTER_KEY) === 'true',
+
+    // Which contests to count is a standing preference rather than something to
+    // say again for every user looked up, so it persists like the theme does.
+    // The switches have already written both flags through x-model.
     remember() {
-      localStorage.setItem(SKIP_FILTER_KEY, this.on ? 'true' : 'false');
+      localStorage.setItem(SKIP_FILTER_KEY, this.hideSkipped ? 'true' : 'false');
+      localStorage.setItem(UNRATED_FILTER_KEY, this.hideUnrated ? 'true' : 'false');
+    },
+
+    // Names the set the two switches leave standing. The server tallied all
+    // four under these keys -- stats, and the head-to-head in the compare view
+    // -- so flipping a switch costs a lookup rather than a request.
+    key() {
+      if (this.hideSkipped) return this.hideUnrated ? 'attended_rated' : 'attended';
+      return this.hideUnrated ? 'rated' : 'all';
     },
 
     history(history) {
-      return this.on ? history.filter(hasAttended) : history;
+      return history.filter(contest =>
+        (!this.hideSkipped || hasAttended(contest)) && (!this.hideUnrated || isRated(contest)));
     },
 
     stats(stats) {
-      return this.on ? stats.attended : stats.all;
+      return stats[this.key()];
     },
   };
+}
+
+// LeetCode awards two contest badges, Knight and Guardian. The stylesheet
+// colours the two it knows by name; anything it is shown later still renders,
+// as a plain chip.
+function badgeOf(ranking) {
+  const name = ranking?.badge?.name;
+  return name ? { name, cls: 'badge-' + name.toLowerCase().replace(/\s+/g, '-') } : null;
 }
 
 async function resolveUser(query) {
@@ -289,7 +337,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('singleUser', () => ({
     activeTab: 'single',
     search: userSearch(),
-    filter: skipFilter(),
+    filter: contestFilter(),
     loading: false,
     error: null,
     stats: null,
@@ -310,6 +358,34 @@ document.addEventListener('alpine:init', () => {
       return this.filter.history(this.history);
     },
 
+    // LeetCode's profile summary — rating, badge, global standing. Null for a CN
+    // account, and for a lookup of a US one that failed.
+    get ranking() {
+      return this.stats?.ranking ?? null;
+    },
+
+    get badge() {
+      return badgeOf(this.ranking);
+    },
+
+    ratingText() {
+      return formatRating(this.ranking?.rating);
+    },
+
+    // Best and average rank read as one figure, because they are one figure
+    // seen twice: where the user has got to, and where they usually land.
+    rankValue() {
+      const { best_rank, avg_rank } = this.shownStats;
+      // Tenths of a place mean nothing at the size this is set in.
+      return `${dash(best_rank, '#')} / ${dash(avg_rank === null ? null : Math.round(avg_rank), '#')}`;
+    },
+
+    // The same two against the fields they were set in, which is what makes a
+    // rank comparable across contests that drew 10,000 entrants and 40,000.
+    rankSub() {
+      return `${this.bestRankPct()} / ${this.avgRankPct()}`;
+    },
+
     // The field size has to come from the same contests the card counted:
     // looking the rank up across the whole history lets a skipped contest that
     // happens to share the number answer for the one that earned it.
@@ -318,10 +394,28 @@ document.addEventListener('alpine:init', () => {
       return contest ? 'Top ' + pct(contest.rank, contest.num_participants) : '—';
     },
 
+    // The average of each contest's own share, not the average rank over the
+    // average field: the first answers "how far up does this user finish", the
+    // second is pulled about by how big the contests happened to be.
+    avgRankPct() {
+      const contests = this.shownHistory.filter(h => h.num_participants > 0);
+      if (!contests.length) return '—';
+      const share = contests.reduce((n, h) => n + h.rank / h.num_participants, 0) / contests.length;
+      return 'Top ' + (share * 100).toFixed(1) + '%';
+    },
+
     filterNote() {
+      if (!this.stats) return '';
       const skipped = this.stats.skipped_count;
       if (!skipped) return 'No skipped contests';
-      return `${skipped} of ${this.stats.all.total_contests} contests ${this.filter.on ? 'hidden' : 'skipped'}`;
+      return `${skipped} of ${this.stats.all.total_contests} contests ${this.filter.hideSkipped ? 'hidden' : 'skipped'}`;
+    },
+
+    unratedNote() {
+      if (!this.stats) return '';
+      const unrated = this.stats.unrated_count;
+      if (!unrated) return 'No unrated contests';
+      return `${unrated} of ${this.stats.all.total_contests} contests ${this.filter.hideUnrated ? 'hidden' : 'unrated'}`;
     },
 
     async load() {
@@ -370,7 +464,7 @@ document.addEventListener('alpine:init', () => {
     activeTab: 'single',
     search1: userSearch(),
     search2: userSearch(),
-    filter: skipFilter(),
+    filter: contestFilter(),
     loading: false, error: null,
     data: null,
 
@@ -387,14 +481,41 @@ document.addEventListener('alpine:init', () => {
     },
 
     wins(n) {
-      return (this.filter.on ? this.data.wins.attended : this.data.wins.all)[`user${n}`];
+      return this.data.wins[this.filter.key()][`user${n}`];
+    },
+
+    ranking(n) {
+      return this.data[`user${n}`].stats.ranking;
+    },
+
+    badge(n) {
+      return badgeOf(this.ranking(n));
+    },
+
+    ratingText(n) {
+      return formatRating(this.ranking(n)?.rating);
+    },
+
+    // Neither column has anything to say about ratings when neither account is
+    // one leetcode.com knows.
+    hasRatingData() {
+      return Boolean(this.data && (this.ranking(1) || this.ranking(2)));
     },
 
     filterNote() {
+      if (!this.data) return '';
       const s1 = this.data.user1.stats;
       const s2 = this.data.user2.stats;
       if (!s1.skipped_count && !s2.skipped_count) return 'No skipped contests';
-      return `${this.filter.on ? 'Hidden' : 'Skipped'} — ${s1.user_slug}: ${s1.skipped_count} · ${s2.user_slug}: ${s2.skipped_count}`;
+      return `${this.filter.hideSkipped ? 'Hidden' : 'Skipped'} — ${s1.user_slug}: ${s1.skipped_count} · ${s2.user_slug}: ${s2.skipped_count}`;
+    },
+
+    unratedNote() {
+      if (!this.data) return '';
+      const s1 = this.data.user1.stats;
+      const s2 = this.data.user2.stats;
+      if (!s1.unrated_count && !s2.unrated_count) return 'No unrated contests';
+      return `${this.filter.hideUnrated ? 'Hidden' : 'Unrated'} — ${s1.user_slug}: ${s1.unrated_count} · ${s2.user_slug}: ${s2.unrated_count}`;
     },
 
     async compare() {

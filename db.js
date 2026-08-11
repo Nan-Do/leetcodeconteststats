@@ -75,11 +75,47 @@ export async function getUserHistory(userSlug, dataRegion) {
 // of the field, with a score of 0. Those rows are the ones a user means by "I
 // didn't compete that week", and left in they drag the averages down and stretch
 // the chart's rank axis over ranks nobody competed for. So a contest counts as
-// attended when the user scored in it, and every figure below is reported both
-// ways. The same rule is written twice more -- as `cr.score > 0` in the query
-// below, and as `hasAttended` in public/js/app.js, which filters the history
-// rows the chart draws. All three have to agree.
+// attended when the user scored in it. The same rule is written once more, as
+// `hasAttended` in public/js/app.js, which filters the history rows the chart
+// draws. Both have to agree.
 export const hasAttended = (contest) => contest.score > 0;
+
+// LeetCode occasionally leaves a contest unrated -- a broken problem, a leak,
+// an outage during the window -- and the results still stand: everyone who
+// competed has a rank, nobody's rating moved. The database has no idea which
+// ones those were, so the flag is put on by annotateHistory below and is false
+// for everyone LeetCode could not be asked about.
+export const isRated = (contest) => !contest.unrated;
+
+// The four ways the two switches under the chart can be set. Named so that the
+// client can ask for a block of stats and a head-to-head tally by the same key,
+// and defined once so that the sets the two are computed over cannot drift.
+export const CONTEST_SETS = {
+  all: () => true,
+  attended: hasAttended,
+  rated: isRated,
+  attended_rated: (contest) => hasAttended(contest) && isRated(contest),
+};
+
+// Puts LeetCode's rating history next to the database's own record of who
+// competed where, and returns plain rows -- the driver's are not meant to be
+// added to, and these travel on to the client as JSON.
+export function annotateHistory(history, contestRanking) {
+  return history.map((contest) => {
+    const entry = contestRanking?.entryFor(contest.contest_slug);
+    // Present but flagged as a non-appearance still means LeetCode counted no
+    // rated result for it.
+    const rated = Boolean(entry) && entry.attended !== false;
+    return {
+      ...contest,
+      rating: entry?.rating ?? null,
+      // A contest the user scored in that LeetCode's rated history does not
+      // list was never rated. Without an answer from LeetCode -- a CN account,
+      // or a lookup that failed -- nothing is known to be unrated.
+      unrated: Boolean(contestRanking) && hasAttended(contest) && !rated,
+    };
+  });
+}
 
 const round1 = (value) => Math.round(value * 10) / 10;
 
@@ -94,60 +130,40 @@ const NO_CONTESTS = {
   ak_count: 0,
 };
 
-// Collapses the per-group tallies of the query below into one block of stats.
-// The query totals rather than averages so that this can fold any set of groups
-// together, which is what keeps "all contests" and "attended only" from being
-// two aggregate queries that have to be kept saying the same thing.
-function foldStats(groups) {
-  const total = groups.reduce((n, group) => n + group.total_contests, 0);
-  if (!total) return { ...NO_CONTESTS };
+// Collapses a set of contests into one block of stats.
+function foldStats(contests) {
+  if (!contests.length) return { ...NO_CONTESTS };
 
-  const sum = (field) => groups.reduce((n, group) => n + group[field], 0);
+  const sum = (field) => contests.reduce((n, contest) => n + contest[field], 0);
+  const count = (keep) => contests.reduce((n, contest) => n + (keep(contest) ? 1 : 0), 0);
   return {
-    total_contests: total,
-    best_rank: Math.min(...groups.map((group) => group.best_rank)),
-    avg_rank: round1(sum('rank_sum') / total),
-    best_score: Math.max(...groups.map((group) => group.best_score)),
-    avg_score: round1(sum('score_sum') / total),
-    top500_count: sum('top500_count'),
-    wins_count: sum('wins_count'),
-    ak_count: sum('ak_count'),
+    total_contests: contests.length,
+    best_rank: Math.min(...contests.map((contest) => contest.rank)),
+    avg_rank: round1(sum('rank') / contests.length),
+    best_score: Math.max(...contests.map((contest) => contest.score)),
+    avg_score: round1(sum('score') / contests.length),
+    top500_count: count((contest) => contest.rank <= 500),
+    wins_count: count((contest) => contest.rank === 1),
+    ak_count: count((contest) => contest.score === contest.contest_score),
   };
 }
 
-export async function getUserStats(userSlug, dataRegion) {
-  const result = await db.execute({
-    sql: `
-      SELECT
-        CASE WHEN cr.score > 0 THEN 1 ELSE 0 END AS attended,
-        COUNT(*) AS total_contests,
-        MIN(cr.rank) AS best_rank,
-        SUM(cr.rank) AS rank_sum,
-        MAX(cr.score) AS best_score,
-        SUM(cr.score) AS score_sum,
-        SUM(CASE WHEN cr.rank <= 500 THEN 1 ELSE 0 END) AS top500_count,
-        SUM(CASE WHEN cr.rank = 1 THEN 1 ELSE 0 END) AS wins_count,
-        SUM(CASE WHEN cr.score = cr.contest_score THEN 1 ELSE 0 END) AS ak_count
-      FROM contest_results cr
-      WHERE cr.user_slug = ? AND cr.data_region = ?
-      GROUP BY attended
-    `,
-    args: [userSlug, dataRegion],
-  });
+// Every figure the cards show, one block per way the switches can be set. The
+// aggregates used to be a second query of their own, which could not have done
+// this: which contests were rated is LeetCode's answer, not the database's, and
+// a few hundred rows the history already fetched are cheaper to fold than to
+// ask about again.
+export function computeStats(history) {
+  if (!history.length) return null;
 
-  // Grouping drops the empty group, so a user with no results at all has no
-  // rows here, and one whose every contest was skipped has only the group 0.
-  if (!result.rows.length) return null;
-
-  const all = foldStats(result.rows);
-  const attended = foldStats(result.rows.filter((row) => row.attended === 1));
-  return {
-    user_slug: userSlug,
-    data_region: dataRegion,
-    all,
-    attended,
-    skipped_count: all.total_contests - attended.total_contests,
-  };
+  const stats = {};
+  for (const [name, keep] of Object.entries(CONTEST_SETS)) {
+    stats[name] = foldStats(history.filter(keep));
+  }
+  // What the notes under the switches report, and why each switch is there.
+  stats.skipped_count = history.filter((contest) => !hasAttended(contest)).length;
+  stats.unrated_count = history.filter((contest) => contest.unrated).length;
+  return stats;
 }
 
 export async function searchUsers(query) {

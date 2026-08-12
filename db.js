@@ -109,6 +109,8 @@ export function annotateHistory(history, contestRanking) {
     return {
       ...contest,
       rating: entry?.rating ?? null,
+      // Keep track of the trend direction.
+      trend_direction: entry?.trendDirection ?? null,
       // A contest the user scored in that LeetCode's rated history does not
       // list was never rated. Without an answer from LeetCode -- a CN account,
       // or a lookup that failed -- nothing is known to be unrated.

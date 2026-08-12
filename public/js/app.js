@@ -41,7 +41,13 @@ const pct = (part, total) => (total ? ((part / total) * 100).toFixed(1) + '%' : 
 // LeetCode carries the rating to three decimals and shows it rounded, so the
 // card, the compare column and the chart tooltip all round the same way rather
 // than each picking their own.
-const formatRating = (rating) => (rating === null || rating === undefined ? '—' : Math.round(rating).toLocaleString('en-US'));
+function formatRating(rating, trend_direction) {
+  let trend_char = '';
+  if (trend_direction === "UP") trend_char = "<span style=\"color: green;\">↑</span>";
+  else if (trend_direction === "DOWN") trend_char = "<span style=\"color: red;\">↓</span>";
+  return (rating === null || rating === undefined ? '—' : `${Math.round(rating).toLocaleString('en-US')} ${trend_char}`);
+}
+
 
 function getApexBase() {
   const light = document.body.classList.contains('light');
@@ -68,7 +74,7 @@ function formatDate(unixTs) {
 }
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h) }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -103,7 +109,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
       <span style="color:${muted};font-size:11px">${date}</span>
     </div>
     ${row('Contest:', point.contest_slug || '—')}
-    ${point.rating != null ? row('Rating:', formatRating(point.rating)) : ''}
+    ${point.rating != null ? row('Rating:', formatRating(point.rating, point.trend_direction)) : ''}
     ${row('Rank:', `#${rank}`)}
     ${row('Solved:', `${point.solved}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}

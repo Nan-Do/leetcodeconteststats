@@ -199,7 +199,7 @@ function contestFilter() {
     // Unrated ones are hidden to begin with, because they are results: the user
     // turned up and finished where they finished, and only the rating was left
     // alone. The switch is for reading the history as LeetCode's rating saw it.
-    hideUnrated: localStorage.getItem(UNRATED_FILTER_KEY) === 'false',
+    hideUnrated: localStorage.getItem(UNRATED_FILTER_KEY) !== 'false',
 
     // Which contests to count is a standing preference rather than something to
     // say again for every user looked up, so it persists like the theme does.

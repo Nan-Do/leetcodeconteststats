@@ -10,7 +10,7 @@
   --success: #36b37e;
   --danger: #ff5630;
   /* LeetCode's two contest badges, and the contests it never rated. */
-  --knight: #d9a441;
+  --knight: #43dc8d;
   --guardian: #6ea8ff;
   --unrated: #8a63d2;
   --radius: 12px;
@@ -27,7 +27,7 @@ body.light {
   --shadow: 0 4px 24px rgba(0,0,0,0.1);
   /* Darkened against white: the same hues at the dark theme's lightness are
      barely there on this background. */
-  --knight: #9a6d0f;
+  --knight: #2da85d;
   --guardian: #2b6fd6;
   --unrated: #6b45b8;
 }

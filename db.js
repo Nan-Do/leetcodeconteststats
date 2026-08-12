@@ -140,6 +140,7 @@ function foldStats(contests) {
   const count = (keep) => contests.reduce((n, contest) => n + (keep(contest) ? 1 : 0), 0);
   return {
     total_contests: contests.length,
+    best_rating: Math.max(...contests.map((contest) => contest.rating)),
     best_rank: Math.min(...contests.map((contest) => contest.rank)),
     avg_rank: round1(sum('rank') / contests.length),
     best_score: Math.max(...contests.map((contest) => contest.score)),

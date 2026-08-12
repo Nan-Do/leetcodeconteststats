@@ -68,8 +68,8 @@
           <div class="value" x-text="shownStats.total_contests"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Rating</div>
-          <div class="value" x-text="ratingText()"></div>
+          <div class="label">Contest Rating (Current / Best)</div>
+          <div class="value" x-text="ratingText() + ' / ' + bestRatingText()"> </div>
           <div class="sub">
             <template x-if="badge"><span class="badge" :class="badge.cls" x-text="badge.name"></span></template>
             <span x-text="ranking ? 'Top ' + ranking.topPercentage + '%' : ''"></span>
@@ -179,7 +179,8 @@
         <div class="compare-col u1">
           <div class="col-header" x-text="data.user1.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="stats(1).total_contests"></span></div>
-          <div class="stat-row"><span class="skey">Rating</span><span class="sval">
+          <div class="stat-row"><span class="skey">Best Rating</span><span class="sval" x-text="bestRatingText(1)"></span></div>
+          <div class="stat-row"><span class="skey">Current Rating</span><span class="sval">
             <span x-text="ratingText(1)"></span>
             <template x-if="badge(1)"><span class="badge" :class="badge(1).cls" x-text="badge(1).name"></span></template>
           </span></div>
@@ -194,7 +195,8 @@
         <div class="compare-col u2">
           <div class="col-header" x-text="data.user2.stats.user_slug"></div>
           <div class="stat-row"><span class="skey">Contests</span><span class="sval" x-text="stats(2).total_contests"></span></div>
-          <div class="stat-row"><span class="skey">Rating</span><span class="sval">
+          <div class="stat-row"><span class="skey">Best Rating</span><span class="sval" x-text="bestRatingText(2)"></span></div>
+          <div class="stat-row"><span class="skey">Current Rating</span><span class="sval">
             <span x-text="ratingText(2)"></span>
             <template x-if="badge(2)"><span class="badge" :class="badge(2).cls" x-text="badge(2).name"></span></template>
           </span></div>

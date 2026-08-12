@@ -378,6 +378,11 @@ document.addEventListener('alpine:init', () => {
       return formatRating(this.ranking?.rating);
     },
 
+    bestRatingText() {
+      if (this.shownStats.best_rating > 0) return formatRating(this.shownStats.best_rating);
+      else return formatRating();
+    },
+
     // Best and average rank read as one figure, because they are one figure
     // seen twice: where the user has got to, and where they usually land.
     rankValue() {
@@ -500,6 +505,11 @@ document.addEventListener('alpine:init', () => {
 
     ratingText(n) {
       return formatRating(this.ranking(n)?.rating);
+    },
+
+    bestRatingText(n) {
+      if (this.stats(n).best_rating > 0) return formatRating(this.stats(n).best_rating);
+      else return formatRating();
     },
 
     // Neither column has anything to say about ratings when neither account is

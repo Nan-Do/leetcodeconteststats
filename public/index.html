@@ -68,17 +68,17 @@
           <div class="value" x-text="shownStats.total_contests"></div>
         </div>
         <div class="stat-card">
-          <div class="label">Contest Rank (Best/Avg)</div>
-          <div class="value dual" x-text="rankValue()"></div>
-          <div class="sub" x-text="rankSub()"></div>
-        </div>
-        <div class="stat-card">
           <div class="label">Rating</div>
           <div class="value" x-text="ratingText()"></div>
           <div class="sub">
             <template x-if="badge"><span class="badge" :class="badge.cls" x-text="badge.name"></span></template>
             <span x-text="ranking ? 'Top ' + ranking.topPercentage + '%' : ''"></span>
           </div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Contest Rank (Best/Avg)</div>
+          <div class="value dual" x-text="rankValue()"></div>
+          <div class="sub" x-text="rankSub()"></div>
         </div>
         <div class="stat-card">
           <div class="label">AK / Wins</div>

@@ -103,11 +103,11 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
       <span style="color:${muted};font-size:11px">${date}</span>
     </div>
     ${row('Contest:', point.contest_slug || '—')}
+    ${point.rating != null ? row('Rating:', formatRating(point.rating)) : ''}
     ${row('Rank:', `#${rank}`)}
     ${row('Solved:', `${point.solved}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', `${point.total_time}`)}
-    ${point.rating != null ? row('Rating:', formatRating(point.rating)) : ''}
     ${notes.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};font-size:11px">
       ${notes.map(note => `<div style="color:${note.color}">${note.text}</div>`).join('')}
     </div>` : ''}
@@ -196,10 +196,10 @@ function contestFilter() {
     // off on an earlier visit -- brings them back.
     hideSkipped: localStorage.getItem(SKIP_FILTER_KEY) !== 'false',
 
-    // Unrated ones are shown to begin with, because they are results: the user
+    // Unrated ones are hidden to begin with, because they are results: the user
     // turned up and finished where they finished, and only the rating was left
     // alone. The switch is for reading the history as LeetCode's rating saw it.
-    hideUnrated: localStorage.getItem(UNRATED_FILTER_KEY) === 'true',
+    hideUnrated: localStorage.getItem(UNRATED_FILTER_KEY) === 'false',
 
     // Which contests to count is a standing preference rather than something to
     // say again for every user looked up, so it persists like the theme does.

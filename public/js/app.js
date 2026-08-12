@@ -43,9 +43,9 @@ const pct = (part, total) => (total ? ((part / total) * 100).toFixed(1) + '%' : 
 // than each picking their own.
 function formatRating(rating, trend_direction) {
   let trend_char = '';
-  if (trend_direction === "UP") trend_char = "<span style=\"color: green;\">↑</span>";
-  else if (trend_direction === "DOWN") trend_char = "<span style=\"color: red;\">↓</span>";
-  return (rating === null || rating === undefined ? '—' : `${Math.round(rating).toLocaleString('en-US')} ${trend_char}`);
+  if (trend_direction === "UP") trend_char = " <span style=\"color: green;\">↑</span>";
+  else if (trend_direction === "DOWN") trend_char = " <span style=\"color: red;\">↓</span>";
+  return (rating === null || rating === undefined ? '—' : `${Math.round(rating).toLocaleString('en-US')}${trend_char}`);
 }
 
 

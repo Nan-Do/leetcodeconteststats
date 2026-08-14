@@ -19,8 +19,7 @@ CREATE TABLE contest_results (
 CREATE TABLE question (
   question_id INTEGER PRIMARY KEY,
   contest_id INTEGER,
-  question_number INTEGER,
-  title_slug TEXT
+  question_number INTEGER
 );
 
 -- WITHOUT ROWID because every column of this table is in its primary key.
@@ -33,6 +32,7 @@ CREATE TABLE user_solved_questions (
   user_slug TEXT,
   data_region TEXT,
   question_id INTEGER,
+  finish_time INTEGER,
   PRIMARY KEY(contest_id, user_slug, data_region, question_id)
 ) WITHOUT ROWID;
 
@@ -40,8 +40,8 @@ CREATE TABLE user_solved_questions (
 INSERT INTO contest_results (contest_id, user_slug, rank, score, finish_time, data_region)
 SELECT contest_id, user_slug, rank, score, finish_time, data_region FROM contest_results_old;
 
-INSERT INTO question (question_id, contest_id, question_number, title_slug)
-SELECT question_id, contest_id, question_number, title_slug FROM question_old;
+INSERT INTO question (question_id, contest_id, question_number)
+SELECT question_id, contest_id, question_number FROM question_old;
 
 -- Step 4: Drop the old table
 DROP TABLE contest_results_old;

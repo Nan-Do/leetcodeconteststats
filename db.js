@@ -48,14 +48,26 @@ export async function findUserCandidates(userSlug, dataRegion = null) {
   return exact.length ? exact : candidates;
 }
 
-// SQLite has no array type, so the question numbers below arrive as one
-// comma-separated string per contest, and as NULL for a contest the user solved
-// nothing in -- which is what group_concat makes of an empty group. Sorted
-// because group_concat concatenates in whatever order the index walk produced,
-// and a list that reads 1,3,2 in the response invites doubt about the data
-// rather than about the ordering.
-const parseQuestionNumbers = (concatenated) =>
-  (concatenated ? String(concatenated).split(',').map(Number).sort((a, b) => a - b) : []);
+// SQLite has no array type, so the solved questions below arrive as one
+// comma-separated string per contest -- `number:seconds` a pair -- and as NULL
+// for a contest the user solved nothing in, which is what group_concat makes of
+// an empty group. Sorted because group_concat concatenates in whatever order
+// the index walk produced, and a list that reads 1,3,2 in the response invites
+// doubt about the data rather than about the ordering.
+//
+// `seconds` is null when the submission has no usable timestamp. That is the
+// one case the pair has to be able to express: dropping the question instead
+// would make one the user solved look like one they never got to.
+const parseSolvedQuestions = (concatenated) => {
+  if (!concatenated) return [];
+  return String(concatenated)
+    .split(',')
+    .map((pair) => {
+      const [question, seconds] = pair.split(':');
+      return { question: Number(question), seconds: seconds === '' ? null : Number(seconds) };
+    })
+    .sort((a, b) => a.question - b.question);
+};
 
 export async function getUserHistory(userSlug, dataRegion) {
   const result = await db.execute({
@@ -70,12 +82,24 @@ export async function getUserHistory(userSlug, dataRegion) {
         cr.num_contest_questions,
         cr.solved,
         time(cr.finish_time - c.time, 'unixepoch') as total_time,
-        -- Which of the contest's questions were solved, not just how many. A
-        -- subquery rather than a join, so a contest with three of them solved
-        -- stays the one row the rest of this query is written to return; it
-        -- reads the solved questions off the primary key, whose leading column
-        -- is the contest_id it is being handed.
-        (SELECT group_concat(q.question_number)
+        -- Which of the contest's questions were solved and how long each one
+        -- took, not just how many. A subquery rather than a join, so a contest
+        -- with three of them solved stays the one row the rest of this query is
+        -- written to return; it reads the solved questions off the primary key,
+        -- whose leading column is the contest_id it is being handed.
+        --
+        -- Both times in this row are measured from the same place, the contest
+        -- start: total_time above off contest_results, each question's off its
+        -- own submission. They will not agree, and should not -- LeetCode's
+        -- finish time carries the penalty minutes for wrong submissions, so it
+        -- runs later than the last question the user actually solved.
+        --
+        -- coalesce because a submission with no timestamp would otherwise make
+        -- the whole pair NULL, and group_concat drops NULLs: a question the
+        -- user solved would silently vanish from the list rather than arriving
+        -- with an unknown time.
+        (SELECT group_concat(q.question_number || ':'
+                  || coalesce(CAST(usq.finish_time - c.time AS INTEGER), ''))
            FROM user_solved_questions usq
            JOIN question q ON q.question_id = usq.question_id
           WHERE usq.contest_id = cr.contest_id
@@ -90,7 +114,7 @@ export async function getUserHistory(userSlug, dataRegion) {
   });
   return result.rows.map((contest) => ({
     ...contest,
-    solved_questions: parseQuestionNumbers(contest.solved_questions),
+    solved_questions: parseSolvedQuestions(contest.solved_questions),
   }));
 }
 

@@ -13,7 +13,7 @@ const MIN_QUERY_LENGTH = 2;
 // handed the previous version's answer for a user it has already looked up. The
 // URL is the cache key, so bumping this retires them. Bump it whenever an
 // endpoint's response shape changes.
-const API_VERSION = 5;
+const API_VERSION = 6;
 
 function apiUrl(path, params = {}) {
   return `/api/${path}?${new URLSearchParams({ ...params, v: API_VERSION })}`;
@@ -86,7 +86,7 @@ function formatDuration(seconds) {
 }
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, solved_questions: h.solved_questions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -114,6 +114,12 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
        <span style="color:${muted}">${label}</span>
        <span style="color:${text};font-weight:600">${value}</span>
      </div>`;
+
+  // Goes directly under Time:, because it is the part of Time: that was not
+  // spent solving -- five minutes of it for every wrong submission. A dash
+  // means the count could not be derived from this contest's timings, which is
+  // not the same as none; db.js says when that happens.
+  const wrongSubmissions = dash(point.wrong_submissions);
 
   // One line per question the contest set, whether or not the user got to it,
   // carrying how long that question took them. "2 of 4" says how much of the
@@ -161,6 +167,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Solved:', `${point.solved}/${point.num_contest_questions}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', `${point.total_time}`)}
+    ${row('Wrong submissions:', wrongSubmissions)}
     ${questions.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border}">
       ${questions.join('')}
     </div>` : ''}

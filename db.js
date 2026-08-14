@@ -69,6 +69,32 @@ const parseSolvedQuestions = (concatenated) => {
     .sort((a, b) => a.question - b.question);
 };
 
+// LeetCode does not record how many wrong submissions a user made, but it
+// prices them: five minutes on the finish time for each one. So the gap between
+// the last question the user actually solved and the finish time LeetCode
+// recorded is the penalty they were charged, and the number of five-minute
+// blocks in it is the number of wrong submissions that earned it. Both figures
+// are already measured from the contest start, so the gap costs nothing the
+// query has not fetched.
+//
+// Null rather than zero when the sum does not come out. A contest with no
+// accepted submission has no last solve to measure from; and 1,177 rows in the
+// 7.9M that do have one carry a finish time earlier than their own last solve,
+// which no number of penalties explains. Both are "cannot say", and saying
+// "none" of either would be inventing a fact.
+const PENALTY_SECONDS = 5 * 60;
+
+function countWrongSubmissions(totalSeconds, solvedQuestions) {
+  const solveTimes = solvedQuestions.map((q) => q.seconds).filter((seconds) => seconds !== null);
+  if (totalSeconds == null || !solveTimes.length) return null;
+
+  const penalty = totalSeconds - Math.max(...solveTimes);
+  if (penalty < 0) return null;
+  // The gap is an exact multiple of the penalty for 99.98% of the database, so
+  // rounding only has the 702 rows whose timestamps drifted to decide.
+  return Math.round(penalty / PENALTY_SECONDS);
+}
+
 export async function getUserHistory(userSlug, dataRegion) {
   const result = await db.execute({
     sql: `
@@ -82,6 +108,10 @@ export async function getUserHistory(userSlug, dataRegion) {
         cr.num_contest_questions,
         cr.solved,
         time(cr.finish_time - c.time, 'unixepoch') as total_time,
+        -- The same figure in seconds, for countWrongSubmissions below to
+        -- subtract the last solve from. Read off the row the query already has
+        -- rather than parsed back out of the formatted string above.
+        CAST(cr.finish_time - c.time AS INTEGER) as total_seconds,
         -- Which of the contest's questions were solved and how long each one
         -- took, not just how many. A subquery rather than a join, so a contest
         -- with three of them solved stays the one row the rest of this query is
@@ -112,10 +142,17 @@ export async function getUserHistory(userSlug, dataRegion) {
     `,
     args: [userSlug, dataRegion],
   });
-  return result.rows.map((contest) => ({
-    ...contest,
-    solved_questions: parseSolvedQuestions(contest.solved_questions),
-  }));
+  // total_seconds is scaffolding for the count below and stops here: total_time
+  // is the same figure, and two spellings of it in the response are two things
+  // that can disagree.
+  return result.rows.map(({ total_seconds, ...contest }) => {
+    const solved_questions = parseSolvedQuestions(contest.solved_questions);
+    return {
+      ...contest,
+      solved_questions,
+      wrong_submissions: countWrongSubmissions(total_seconds, solved_questions),
+    };
+  });
 }
 
 // Registering for a contest and not turning up, or turning up and submitting

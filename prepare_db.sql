@@ -8,7 +8,7 @@ CREATE TABLE contest_results (
     user_slug TEXT,
     rank INTEGER NOT NULL,
     solved INTEGER DEFAULT 0,
-    total_questions INTEGER DEFAULT 0,
+    num_contest_questions INTEGER DEFAULT 0,
     score INTEGER NOT NULL,
     contest_score INTEGER DEFAULT 0,
     finish_time REAL,

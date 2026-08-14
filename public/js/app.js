@@ -13,7 +13,7 @@ const MIN_QUERY_LENGTH = 2;
 // handed the previous version's answer for a user it has already looked up. The
 // URL is the cache key, so bumping this retires them. Bump it whenever an
 // endpoint's response shape changes.
-const API_VERSION = 3;
+const API_VERSION = 4;
 
 function apiUrl(path, params = {}) {
   return `/api/${path}?${new URLSearchParams({ ...params, v: API_VERSION })}`;
@@ -74,7 +74,7 @@ function formatDate(unixTs) {
 }
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, solved_questions: h.solved_questions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -103,6 +103,27 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
        <span style="color:${text};font-weight:600">${value}</span>
      </div>`;
 
+  // One mark per question the contest set, whether or not the user got to it:
+  // "2 of 4" says how much of the contest they finished, and this says which
+  // part of it -- the first two, or the first and the hard one. The marks are
+  // the plain check and cross rather than their heavier dingbat cousins, which
+  // are in the emoji set: a browser that decides to draw one as emoji draws it
+  // in its own colour, and colour is the whole of what these two say. Solved
+  // and unsolved are --success and --danger, darkened for the light theme the
+  // way the stylesheet darkens its badge colours against white.
+  const solvedColor = light ? '#00875a' : '#36b37e';
+  const unsolvedColor = light ? '#de350b' : '#ff5630';
+  const solvedSet = new Set(point.solved_questions ?? []);
+  // A response cached from before this field existed has no list to read, and
+  // an empty row of questions is worse than none.
+  const questionCount = point.solved_questions ? point.num_contest_questions ?? 0 : 0;
+  const questions = Array.from({ length: questionCount }, (_, i) => {
+    const solved = solvedSet.has(i + 1);
+    return `<span style="color:${muted};white-space:nowrap">Q${i + 1}
+      <span style="color:${solved ? solvedColor : unsolvedColor};font-weight:700">${solved ? '✓' : '✗'}</span>
+    </span>`;
+  });
+
   return `<div style="padding:8px 12px;background:${bg};border:1px solid ${border};border-radius:8px;font-size:13px;min-width:200px">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
@@ -114,6 +135,9 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Solved:', `${point.solved}/${point.num_contest_questions}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', `${point.total_time}`)}
+    ${questions.length ? `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-top:6px;padding-top:6px;border-top:1px solid ${border}">
+      ${questions.join('')}
+    </div>` : ''}
     ${notes.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};font-size:11px">
       ${notes.map(note => `<div style="color:${note.color}">${note.text}</div>`).join('')}
     </div>` : ''}

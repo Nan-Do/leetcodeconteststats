@@ -48,6 +48,15 @@ export async function findUserCandidates(userSlug, dataRegion = null) {
   return exact.length ? exact : candidates;
 }
 
+// SQLite has no array type, so the question numbers below arrive as one
+// comma-separated string per contest, and as NULL for a contest the user solved
+// nothing in -- which is what group_concat makes of an empty group. Sorted
+// because group_concat concatenates in whatever order the index walk produced,
+// and a list that reads 1,3,2 in the response invites doubt about the data
+// rather than about the ordering.
+const parseQuestionNumbers = (concatenated) =>
+  (concatenated ? String(concatenated).split(',').map(Number).sort((a, b) => a - b) : []);
+
 export async function getUserHistory(userSlug, dataRegion) {
   const result = await db.execute({
     sql: `
@@ -60,7 +69,18 @@ export async function getUserHistory(userSlug, dataRegion) {
         cr.contest_score,
         cr.num_contest_questions,
         cr.solved,
-        time(cr.finish_time - c.time, 'unixepoch') as total_time
+        time(cr.finish_time - c.time, 'unixepoch') as total_time,
+        -- Which of the contest's questions were solved, not just how many. A
+        -- subquery rather than a join, so a contest with three of them solved
+        -- stays the one row the rest of this query is written to return; it
+        -- reads the solved questions off the primary key, whose leading column
+        -- is the contest_id it is being handed.
+        (SELECT group_concat(q.question_number)
+           FROM user_solved_questions usq
+           JOIN question q ON q.question_id = usq.question_id
+          WHERE usq.contest_id = cr.contest_id
+            AND usq.user_slug = cr.user_slug
+            AND usq.data_region = cr.data_region) AS solved_questions
       FROM contest_results cr
       JOIN contest c ON cr.contest_id = c.contest_id
       WHERE cr.user_slug = ? AND cr.data_region = ?
@@ -68,7 +88,10 @@ export async function getUserHistory(userSlug, dataRegion) {
     `,
     args: [userSlug, dataRegion],
   });
-  return result.rows;
+  return result.rows.map((contest) => ({
+    ...contest,
+    solved_questions: parseQuestionNumbers(contest.solved_questions),
+  }));
 }
 
 // Registering for a contest and not turning up, or turning up and submitting

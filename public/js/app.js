@@ -13,7 +13,7 @@ const MIN_QUERY_LENGTH = 2;
 // handed the previous version's answer for a user it has already looked up. The
 // URL is the cache key, so bumping this retires them. Bump it whenever an
 // endpoint's response shape changes.
-const API_VERSION = 6;
+const API_VERSION = 7;
 
 function apiUrl(path, params = {}) {
   return `/api/${path}?${new URLSearchParams({ ...params, v: API_VERSION })}`;

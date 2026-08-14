@@ -212,10 +212,23 @@ const NO_CONTESTS = {
   avg_rank: null,
   best_score: null,
   avg_score: null,
+  avg_wrong_submissions: null,
   top500_count: 0,
   wins_count: 0,
   ak_count: 0,
 };
+
+// Every other average here divides by the number of contests, because every
+// contest has the figure being averaged. This one does not: a contest whose
+// count could not be derived is left out of both the total and the divisor
+// rather than counted as a clean run, which is what dividing by
+// contests.length would quietly make it. An average with nothing left to
+// average is null, the same answer as having no contests at all.
+function avgWrongSubmissions(contests) {
+  const counts = contests.map((contest) => contest.wrong_submissions).filter((n) => n != null);
+  if (!counts.length) return null;
+  return round1(counts.reduce((total, n) => total + n, 0) / counts.length);
+}
 
 // Collapses a set of contests into one block of stats.
 function foldStats(contests) {
@@ -230,6 +243,7 @@ function foldStats(contests) {
     avg_rank: round1(sum('rank') / contests.length),
     best_score: Math.max(...contests.map((contest) => contest.score)),
     avg_score: round1(sum('score') / contests.length),
+    avg_wrong_submissions: avgWrongSubmissions(contests),
     top500_count: count((contest) => contest.rank <= 500),
     wins_count: count((contest) => contest.rank === 1),
     ak_count: count((contest) => contest.score === contest.contest_score),

@@ -89,6 +89,9 @@
           <div class="label">Best Score</div>
           <div class="value" x-text="dash(shownStats.best_score)"></div>
           <div class="sub" x-text="'Avg: ' + dash(shownStats.avg_score)"></div>
+          <!-- A dash here means no contest in the set had a count that could be
+               derived, not that the user never submitted a wrong answer. -->
+          <div class="sub" title="Wrong submissions per contest, averaged. LeetCode does not publish the number; it is read back out of the five minutes of penalty each one adds to the finish time." x-text="'Avg wrong subs: ' + dash(shownStats.avg_wrong_submissions)"></div>
         </div>
         <div class="stat-card">
           <div class="label">Top 500 Finishes</div>
@@ -190,6 +193,7 @@
           <div class="stat-row"><span class="skey">AK</span><span class="sval" x-text="stats(1).ak_count"></span></div>
           <div class="stat-row"><span class="skey">Wins</span><span class="sval" x-text="stats(1).wins_count"></span></div>
           <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="dash(stats(1).best_score)"></span></div>
+          <div class="stat-row" title="Wrong submissions per contest, averaged. LeetCode does not publish the number; it is read back out of the five minutes of penalty each one adds to the finish time."><span class="skey">Avg Wrong Submissions</span><span class="sval" x-text="dash(stats(1).avg_wrong_submissions)"></span></div>
           <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="stats(1).top500_count"></span></div>
         </div>
         <div class="compare-col u2">
@@ -206,6 +210,7 @@
           <div class="stat-row"><span class="skey">AK</span><span class="sval" x-text="stats(2).ak_count"></span></div>
           <div class="stat-row"><span class="skey">Wins</span><span class="sval" x-text="stats(2).wins_count"></span></div>
           <div class="stat-row"><span class="skey">Best Score</span><span class="sval" x-text="dash(stats(2).best_score)"></span></div>
+          <div class="stat-row" title="Wrong submissions per contest, averaged. LeetCode does not publish the number; it is read back out of the five minutes of penalty each one adds to the finish time."><span class="skey">Avg Wrong Submissions</span><span class="sval" x-text="dash(stats(2).avg_wrong_submissions)"></span></div>
           <div class="stat-row"><span class="skey">Top 500 Finishes</span><span class="sval" x-text="stats(2).top500_count"></span></div>
         </div>
       </div>

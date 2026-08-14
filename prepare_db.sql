@@ -1,12 +1,14 @@
 -- Step 1: Rename original table
 ALTER TABLE contest_results RENAME TO contest_results_old;
+ALTER TABLE question RENAME TO question_old;
 
--- Step 2: Create new table with only the required fields
+-- Step 2: Create the new tables with only the required fields
 CREATE TABLE contest_results (
     contest_id INTEGER,
     user_slug TEXT,
     rank INTEGER NOT NULL,
     solved INTEGER DEFAULT 0,
+    total_questions INTEGER DEFAULT 0,
     score INTEGER NOT NULL,
     contest_score INTEGER DEFAULT 0,
     finish_time REAL,
@@ -14,12 +16,31 @@ CREATE TABLE contest_results (
     PRIMARY KEY(contest_id, user_slug, data_region)
 );
 
+CREATE TABLE question (
+  question_id INTEGER PRIMARY KEY,
+  contest_id INTEGER,
+  question_number INTEGER,
+  title_slug TEXT
+);
+
+CREATE TABLE user_solved_questions (
+  contest_id INTEGER,
+  user_slug TEXT,
+  data_region TEXT,
+  question_id INTEGER,
+  PRIMARY KEY(contest_id, user_slug, data_region, question_id)
+);
+
 -- Step 3: Copy data
 INSERT INTO contest_results (contest_id, user_slug, rank, score, finish_time, data_region)
 SELECT contest_id, user_slug, rank, score, finish_time, data_region FROM contest_results_old;
 
+INSERT INTO question (question_id, contest_id, question_number, title_slug)
+SELECT question_id, contest_id, question_number, title_slug FROM question_old;
+
 -- Step 4: Drop the old table
 DROP TABLE contest_results_old;
+DROP TABLE question_old;
 
 -- Step 5: Generate the indices for the queries
 -- Index 1: Optimizes Queries 1, 2, and 3 (User History & Aggregates)

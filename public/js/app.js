@@ -74,7 +74,7 @@ function formatDate(unixTs) {
 }
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -111,7 +111,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Contest:', point.contest_slug || '—')}
     ${point.rating != null ? row('Rating:', formatRating(point.rating, point.trend_direction)) : ''}
     ${row('Rank:', `#${rank}`)}
-    ${row('Solved:', `${point.solved}`)}
+    ${row('Solved:', `${point.solved}/${point.num_contest_questions}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', `${point.total_time}`)}
     ${notes.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border};font-size:11px">

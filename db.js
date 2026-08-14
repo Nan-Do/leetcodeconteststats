@@ -58,6 +58,7 @@ export async function getUserHistory(userSlug, dataRegion) {
         cr.rank,
         cr.score,
         cr.contest_score,
+        cr.num_contest_questions,
         cr.solved,
         time(cr.finish_time - c.time, 'unixepoch') as total_time
       FROM contest_results cr

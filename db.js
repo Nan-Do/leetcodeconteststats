@@ -107,10 +107,12 @@ export async function getUserHistory(userSlug, dataRegion) {
         cr.contest_score,
         cr.num_contest_questions,
         cr.solved,
-        time(cr.finish_time - c.time, 'unixepoch') as total_time,
-        -- The same figure in seconds, for countWrongSubmissions below to
-        -- subtract the last solve from. Read off the row the query already has
-        -- rather than parsed back out of the formatted string above.
+        -- How long the contest took, from its start to the finish time LeetCode
+        -- recorded. Seconds rather than SQLite's time(..., 'unixepoch'): three
+        -- things here need the number -- the count below, the average the stats
+        -- fold, and the client, which formats it -- and only one of them wanted
+        -- a string. It is also the honest one of the two, since time() wraps at
+        -- 24 hours and 23 rows in the table run longer than that.
         CAST(cr.finish_time - c.time AS INTEGER) as total_seconds,
         -- Which of the contest's questions were solved and how long each one
         -- took, not just how many. A subquery rather than a join, so a contest
@@ -119,8 +121,8 @@ export async function getUserHistory(userSlug, dataRegion) {
         -- whose leading column is the contest_id it is being handed.
         --
         -- Both times in this row are measured from the same place, the contest
-        -- start: total_time above off contest_results, each question's off its
-        -- own submission. They will not agree, and should not -- LeetCode's
+        -- start: total_seconds above off contest_results, each question's off
+        -- its own submission. They will not agree, and should not -- LeetCode's
         -- finish time carries the penalty minutes for wrong submissions, so it
         -- runs later than the last question the user actually solved.
         --
@@ -142,15 +144,12 @@ export async function getUserHistory(userSlug, dataRegion) {
     `,
     args: [userSlug, dataRegion],
   });
-  // total_seconds is scaffolding for the count below and stops here: total_time
-  // is the same figure, and two spellings of it in the response are two things
-  // that can disagree.
-  return result.rows.map(({ total_seconds, ...contest }) => {
+  return result.rows.map((contest) => {
     const solved_questions = parseSolvedQuestions(contest.solved_questions);
     return {
       ...contest,
       solved_questions,
-      wrong_submissions: countWrongSubmissions(total_seconds, solved_questions),
+      wrong_submissions: countWrongSubmissions(contest.total_seconds, solved_questions),
     };
   });
 }
@@ -210,6 +209,7 @@ const NO_CONTESTS = {
   total_contests: 0,
   best_rank: null,
   avg_rank: null,
+  avg_finish_seconds: null,
   best_score: null,
   avg_score: null,
   avg_wrong_submissions: null,
@@ -218,16 +218,29 @@ const NO_CONTESTS = {
   ak_count: 0,
 };
 
-// Every other average here divides by the number of contests, because every
-// contest has the figure being averaged. This one does not: a contest whose
-// count could not be derived is left out of both the total and the divisor
-// rather than counted as a clean run, which is what dividing by
-// contests.length would quietly make it. An average with nothing left to
-// average is null, the same answer as having no contests at all.
+// avg_rank and avg_score divide by the number of contests, because every
+// contest has a rank and a score. The two below cannot: some contests have no
+// figure to contribute, and dividing by contests.length would quietly count
+// those as a clean run or an instant finish. Both leave them out of the total
+// and the divisor alike, and both answer null when that leaves nothing --
+// the same answer as having no contests at all.
+const averageOf = (values) =>
+  (values.length ? values.reduce((total, n) => total + n, 0) / values.length : null);
+
 function avgWrongSubmissions(contests) {
-  const counts = contests.map((contest) => contest.wrong_submissions).filter((n) => n != null);
-  if (!counts.length) return null;
-  return round1(counts.reduce((total, n) => total + n, 0) / counts.length);
+  const average = averageOf(contests.map((contest) => contest.wrong_submissions).filter((n) => n != null));
+  return average === null ? null : round1(average);
+}
+
+// A finish time before the contest it belongs to is not a finish time -- 2,306
+// rows in the table carry one, and averaged in they would pull the figure below
+// what anyone actually took. A contest the user sat out is left in, on the
+// other hand: its zero is a real result for the set the switches asked for, and
+// it is the same zero avg_score is already averaging in beside it.
+function avgFinishSeconds(contests) {
+  const seconds = contests.map((contest) => contest.total_seconds).filter((n) => n != null && n >= 0);
+  const average = averageOf(seconds);
+  return average === null ? null : Math.round(average);
 }
 
 // Collapses a set of contests into one block of stats.
@@ -238,6 +251,7 @@ function foldStats(contests) {
   const count = (keep) => contests.reduce((n, contest) => n + (keep(contest) ? 1 : 0), 0);
   return {
     total_contests: contests.length,
+    avg_finish_seconds: avgFinishSeconds(contests),
     best_rating: Math.max(...contests.map((contest) => contest.rating)),
     best_rank: Math.min(...contests.map((contest) => contest.rank)),
     avg_rank: round1(sum('rank') / contests.length),

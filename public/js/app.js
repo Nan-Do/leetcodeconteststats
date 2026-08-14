@@ -13,7 +13,7 @@ const MIN_QUERY_LENGTH = 2;
 // handed the previous version's answer for a user it has already looked up. The
 // URL is the cache key, so bumping this retires them. Bump it whenever an
 // endpoint's response shape changes.
-const API_VERSION = 7;
+const API_VERSION = 8;
 
 function apiUrl(path, params = {}) {
   return `/api/${path}?${new URLSearchParams({ ...params, v: API_VERSION })}`;
@@ -85,8 +85,13 @@ function formatDuration(seconds) {
   return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor(whole / 60) % 60)}:${pad(whole % 60)}`;
 }
 
+// The cards' version, for a duration that may not exist: no contest in the set
+// carried a usable finish time, or the set is empty. Reads as the dash every
+// other missing figure on the cards reads as.
+const durationOrDash = (seconds) => (seconds == null ? '—' : formatDuration(seconds));
+
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_time: h.total_time, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_seconds: h.total_seconds, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -166,7 +171,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Rank:', `#${rank}`)}
     ${row('Solved:', `${point.solved}/${point.num_contest_questions}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
-    ${row('Time:', `${point.total_time}`)}
+    ${row('Time:', formatDuration(point.total_seconds))}
     ${row('Wrong submissions:', wrongSubmissions)}
     ${questions.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border}">
       ${questions.join('')}
@@ -525,6 +530,7 @@ document.addEventListener('alpine:init', () => {
     formatDate,
     pct,
     dash,
+    durationOrDash,
   }));
 
   // ── Compare View ─────────────────────────────────────────────────

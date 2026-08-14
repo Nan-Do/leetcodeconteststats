@@ -66,6 +66,9 @@
         <div class="stat-card">
           <div class="label">Contests</div>
           <div class="value" x-text="shownStats.total_contests"></div>
+          <div class="sub" title="How long the user's contests took on average, from the start of each to the finish time LeetCode recorded for it. That finish time includes the five minutes of penalty each wrong submission adds.">
+            <span x-text="'Avg finish: ' + durationOrDash(shownStats.avg_finish_seconds)"></span>
+          </div>
         </div>
         <div class="stat-card">
           <div class="label">Contest Rating (Current / Best)</div>

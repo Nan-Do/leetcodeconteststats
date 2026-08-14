@@ -12,7 +12,7 @@ A web application to explore and compare LeetCode contest performance. Search fo
 
 ## Features
 
-- **User stats** — contests played, best/avg rank, wins, best/avg score, top 500 finishes
+- **User stats** — contests played and how long they take on average, best/avg rank, wins, best/avg score, top 500 finishes
 - **Contest rating** — the user's LeetCode rating and Knight/Guardian badge, and the rating each contest left them on, in the chart tooltip. This comes from leetcode.com, which knows nothing about CN accounts, so those cards stay empty for them
 - **Contest history chart** — interactive rank progression over time (zoom, pan, reset)
 - **Per-question breakdown** — the chart tooltip lists every question a contest set with how long it took to solve, measured from the contest start, and a red ✗ for the ones that were not. So "2 of 4" also says *which* two and at what pace

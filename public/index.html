@@ -66,9 +66,8 @@
         <div class="stat-card">
           <div class="label">Contests</div>
           <div class="value" x-text="shownStats.total_contests"></div>
-          <div class="sub" title="How long the user's contests took on average, from the start of each to the finish time LeetCode recorded for it. That finish time includes the five minutes of penalty each wrong submission adds.">
-            <span x-text="'Avg finish: ' + durationOrDash(shownStats.avg_finish_seconds)"></span>
-          </div>
+          <div class="sub" x-text="'Avg finish time: ' + durationOrDash(shownStats.avg_finish_seconds)"></div>
+          <div class="sub" x-text="'Avg wrong submissions: ' + dash(shownStats.avg_wrong_submissions)"></div>
         </div>
         <div class="stat-card">
           <div class="label">Contest Rating (Current / Best)</div>
@@ -94,7 +93,6 @@
           <div class="sub" x-text="'Avg: ' + dash(shownStats.avg_score)"></div>
           <!-- A dash here means no contest in the set had a count that could be
                derived, not that the user never submitted a wrong answer. -->
-          <div class="sub" title="Wrong submissions per contest, averaged. LeetCode does not publish the number; it is read back out of the five minutes of penalty each one adds to the finish time." x-text="'Avg wrong subs: ' + dash(shownStats.avg_wrong_submissions)"></div>
         </div>
         <div class="stat-card">
           <div class="label">Top 500 Finishes</div>

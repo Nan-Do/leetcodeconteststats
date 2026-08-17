@@ -169,10 +169,10 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     ${row('Contest:', point.contest_slug || '—')}
     ${point.rating != null ? row('Rating:', formatRating(point.rating, point.trend_direction)) : ''}
     ${row('Rank:', `#${rank}`)}
+    ${row('Wrong Att:', wrongSubmissions)}
     ${row('Solved:', `${point.solved}/${point.num_contest_questions}`)}
     ${row('Score:', `${point.user_score}/${point.contest_score}`)}
     ${row('Time:', formatDuration(point.total_seconds))}
-    ${row('Wrong submissions:', wrongSubmissions)}
     ${questions.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid ${border}">
       ${questions.join('')}
     </div>` : ''}

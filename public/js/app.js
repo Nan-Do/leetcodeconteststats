@@ -91,7 +91,7 @@ function formatDuration(seconds) {
 const durationOrDash = (seconds) => (seconds == null ? '—' : formatDuration(seconds));
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_seconds: h.total_seconds, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_seconds: h.total_seconds, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions, has_cheated: h.has_cheated }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -100,6 +100,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   const border = light ? '#cdd1e4' : '#2e3250';
   const text = light ? '#1a1d27' : '#e4e6f0';
   const muted = light ? '#5a6080' : '#7a7f9a';
+  const cheated = light ? '#ff5d5d' : '#ff2a2a';
 
   const s = w.config.series[seriesIndex];
   const point = s.data[dataPointIndex];
@@ -110,7 +111,10 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   // colour it is marked in. A contest can be two of these at once: the best
   // rank on the chart is worth knowing about whether or not it was ever rated.
   const notes = [];
-  if (point.skipped) notes.push({ text: 'Skipped — no score in this contest', color: muted });
+  if (point.skipped) {
+    const skipped_message = point.has_cheated ? 'Cheating — deranked by LeetCode' : 'Skipped — no score in this contest';
+    notes.push({ text: skipped_message, color: point.has_cheated ? cheated : muted });
+  }
   if (point.unrated) notes.push({ text: 'Unrated — the result stands, the rating did not move', color: CHART_COLORS.unrated });
   if (point.best) notes.push({ text: 'Best rank on the chart', color: CHART_COLORS.best });
 
@@ -197,6 +201,9 @@ const latestRequest = { single: 0, compare: 0 };
 
 // Replaces whatever chart is in `selector` with a new one.
 function drawRankChart(selector, { series, height }) {
+  const light = document.body.classList.contains('light');
+  const cheated = light ? '#ff5d5d' : '#ff2a2a';
+
   const host = document.querySelector(selector);
   charts.get(selector)?.destroy();
   charts.delete(selector);
@@ -232,7 +239,7 @@ function drawRankChart(selector, { series, height }) {
       point.best = !point.skipped && point.y === best;
 
       if (point.skipped) {
-        marks.push({ seriesIndex, dataPointIndex, size: 4, fillColor: base.chart.background, strokeColor: base.chart.foreColor });
+        marks.push({ seriesIndex, dataPointIndex, size: 4, fillColor: point.has_cheated ? cheated : base.chart.background, strokeColor: base.chart.foreColor });
       } else if (point.unrated) {
         marks.push({ seriesIndex, dataPointIndex, size: 5, shape: 'square', fillColor: point.best ? CHART_COLORS.best : CHART_COLORS.unrated, strokeColor: base.chart.background });
       } else if (point.best) {

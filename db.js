@@ -107,6 +107,7 @@ export async function getUserHistory(userSlug, dataRegion) {
         cr.contest_score,
         cr.num_contest_questions,
         cr.solved,
+        cr.has_cheated,
         -- How long the contest took, from its start to the finish time LeetCode
         -- recorded. Seconds rather than SQLite's time(..., 'unixepoch'): three
         -- things here need the number -- the count below, the average the stats

@@ -13,6 +13,7 @@ CREATE TABLE contest_results (
     contest_score INTEGER DEFAULT 0,
     finish_time REAL,
     data_region TEXT,
+    has_cheated INTEGER DEFAULT FALSE,
     PRIMARY KEY(contest_id, user_slug, data_region)
 );
 

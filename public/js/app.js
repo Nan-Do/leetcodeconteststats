@@ -112,7 +112,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   // rank on the chart is worth knowing about whether or not it was ever rated.
   const notes = [];
   if (point.skipped) {
-    const skipped_message = point.has_cheated ? 'Cheating — deranked by LeetCode' : 'Skipped — no score in this contest';
+    const skipped_message = point.has_cheated ? 'Deranked — original result voided' : 'Skipped — no score in this contest';
     notes.push({ text: skipped_message, color: point.has_cheated ? cheated : muted });
   }
   if (point.unrated) notes.push({ text: 'Unrated — the result stands, the rating did not move', color: CHART_COLORS.unrated });

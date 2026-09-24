@@ -34,6 +34,7 @@ CREATE TABLE user_solved_questions (
   data_region TEXT,
   question_id INTEGER,
   finish_time INTEGER,
+  failed_count INTEGER,
   PRIMARY KEY(contest_id, user_slug, data_region, question_id)
 ) WITHOUT ROWID;
 

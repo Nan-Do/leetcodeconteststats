@@ -63,8 +63,8 @@ const parseSolvedQuestions = (concatenated) => {
   return String(concatenated)
     .split(',')
     .map((pair) => {
-      const [question, seconds] = pair.split(':');
-      return { question: Number(question), seconds: seconds === '' ? null : Number(seconds) };
+      const [question, seconds, failed_count] = pair.split(':');
+      return { question: Number(question), seconds: seconds === '' ? null : Number(seconds), failed_count: Number(failed_count) };
     })
     .sort((a, b) => a.question - b.question);
 };
@@ -132,7 +132,7 @@ export async function getUserHistory(userSlug, dataRegion) {
         -- user solved would silently vanish from the list rather than arriving
         -- with an unknown time.
         (SELECT group_concat(q.question_number || ':'
-                  || coalesce(CAST(usq.finish_time - c.time AS INTEGER), ''))
+                  || coalesce(CAST(usq.finish_time - c.time AS INTEGER),  '') || ':' || usq.failed_count)
            FROM user_solved_questions usq
            JOIN question q ON q.question_id = usq.question_id
           WHERE usq.contest_id = cr.contest_id

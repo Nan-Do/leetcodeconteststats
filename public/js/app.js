@@ -162,7 +162,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
     const seconds = solvedTimes.get(number);
     return row(`Q${number}:`, seconds === null || seconds < 0
       ? `<span style="color:${solvedColor}">✓</span>`
-      : formatDuration(seconds) + ` - (${point.solved_questions[i].failed_count}`);
+      : formatDuration(seconds) + ` - (${point.solved_questions[i].failed_count})`);
   });
 
   return `<div style="padding:8px 12px;background:${bg};border:1px solid ${border};border-radius:8px;font-size:13px;min-width:200px">

@@ -148,21 +148,46 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   // and here the colour is the whole of what it says.
   const solvedColor = light ? '#00875a' : '#36b37e';
   const unsolvedColor = light ? '#de350b' : '#ff5630';
-  const solvedTimes = new Map((point.solved_questions ?? []).map(q => [q.question, q.seconds]));
+  const solvedByNumber = new Map((point.solved_questions ?? []).map(q => [q.question, q]));
   // A response cached from before this field existed has no list to read, and
   // an empty block of questions is worse than none.
   const questionCount = point.solved_questions ? point.num_contest_questions ?? 0 : 0;
+
+  // Wrong attempts sit in a fixed-width slot at the right of every question
+  // line, filled or not, so the times, ticks and crosses all end on the same
+  // edge instead of shifting left by however wide the count happens to be.
+  // Tabular figures keep the digits of the times themselves in columns too.
+  // The count is a small amber pill -- the penalty colour, not the unsolved
+  // red, since the question was still solved -- and absent when it is zero or
+  // not known, so a clean solve reads as clean. A contest with no wrong
+  // attempts anywhere gets no slot at all: there is nothing to line up with,
+  // and an empty column would only leave a gap after every time.
+  const wrongColor = light ? '#a35200' : '#ffab00';
+  const wrongBg = light ? 'rgba(255,171,0,0.16)' : 'rgba(255,171,0,0.14)';
+  const anyWrong = (point.solved_questions ?? []).some(q => q.failed_count > 0);
+  const wrongSlot = (count) => {
+    if (!anyWrong) return '';
+    const pill = count > 0
+      ? `<span title="${count} wrong attempt${count === 1 ? '' : 's'}" style="display:inline-block;padding:0 5px;border-radius:9px;background:${wrongBg};color:${wrongColor};font-size:11px;font-weight:600;line-height:16px">+${count}</span>`
+      : '';
+    return `<span style="display:inline-block;min-width:30px;text-align:right">${pill}</span>`;
+  };
+  const questionValue = (content, count) =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums">${content}${wrongSlot(count)}</span>`;
+
   const questions = Array.from({ length: questionCount }, (_, i) => {
     const number = i + 1;
-    if (!solvedTimes.has(number)) {
-      return row(`Q${number}:`, `<span style="color:${unsolvedColor}">✗</span>`);
+    const solved = solvedByNumber.get(number);
+    if (!solved) {
+      return row(`Q${number}:`, questionValue(`<span style="color:${unsolvedColor}">✗</span>`, 0));
     }
     // Solved, but the submission carries no usable timestamp. A check mark is
     // all that can honestly be said, and it still says the thing that matters.
-    const seconds = solvedTimes.get(number);
-    return row(`Q${number}:`, seconds === null || seconds < 0
+    const seconds = solved.seconds;
+    const content = seconds === null || seconds < 0
       ? `<span style="color:${solvedColor}">✓</span>`
-      : formatDuration(seconds) + ` - (${point.solved_questions[i].failed_count})`);
+      : formatDuration(seconds);
+    return row(`Q${number}:`, questionValue(content, solved.failed_count));
   });
 
   return `<div style="padding:8px 12px;background:${bg};border:1px solid ${border};border-radius:8px;font-size:13px;min-width:200px">

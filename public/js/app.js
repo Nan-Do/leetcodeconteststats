@@ -91,7 +91,7 @@ function formatDuration(seconds) {
 const durationOrDash = (seconds) => (seconds == null ? '—' : formatDuration(seconds));
 
 function historyToSeries(history, field = 'rank') {
-  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_seconds: h.total_seconds, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions, has_cheated: h.has_cheated }));
+  return history.map(h => ({ x: h.time * 1000, y: h[field], contest_slug: h.contest_slug, user_score: h.score, contest_score: h.contest_score, total_seconds: h.total_seconds, solved: h.solved, solved_questions: h.solved_questions, wrong_submissions: h.wrong_submissions, rating: h.rating, unrated: h.unrated, skipped: !hasAttended(h), trend_direction: h.trend_direction, num_contest_questions: h.num_contest_questions, has_cheated: h.has_cheated, llm_assisted: h.llm_assisted }));
 }
 
 function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
@@ -101,6 +101,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   const text = light ? '#1a1d27' : '#e4e6f0';
   const muted = light ? '#5a6080' : '#7a7f9a';
   const cheated = light ? '#ff5d5d' : '#ff2a2a';
+  const llmAssisted = cheated;
 
   const s = w.config.series[seriesIndex];
   const point = s.data[dataPointIndex];
@@ -117,6 +118,7 @@ function rankTooltipHtml({ series, seriesIndex, dataPointIndex, w }) {
   }
   if (point.unrated) notes.push({ text: 'Unrated — the result stands, the rating did not move', color: CHART_COLORS.unrated });
   if (point.best) notes.push({ text: 'Best rank on the chart', color: CHART_COLORS.best });
+  if (point.llm_assisted) notes.push({ text: 'Suspected LLM assistance', color: llmAssisted });
 
   const row = (label, value) =>
     `<div style="display:flex;justify-content:space-between;gap:16px;padding:2px 0">
@@ -228,6 +230,7 @@ const latestRequest = { single: 0, compare: 0 };
 function drawRankChart(selector, { series, height }) {
   const light = document.body.classList.contains('light');
   const cheated = light ? '#ff5d5d' : '#ff2a2a';
+  const llmAssisted = cheated;
 
   const host = document.querySelector(selector);
   charts.get(selector)?.destroy();
@@ -255,6 +258,8 @@ function drawRankChart(selector, { series, height }) {
   //
   // Shape and colour say different things, so the two compose: an unrated
   // contest that is also the best rank stays a square and turns green.
+  //
+  // A contest suspected of LLM assistance is filled the same as cheated
   const marks = [];
   series.forEach((s, seriesIndex) => {
     const best = Math.min(...s.data.filter(point => !point.skipped).map(point => point.y));
@@ -264,7 +269,10 @@ function drawRankChart(selector, { series, height }) {
       point.best = !point.skipped && point.y === best;
 
       if (point.skipped) {
-        marks.push({ seriesIndex, dataPointIndex, size: 4, fillColor: point.has_cheated ? cheated : base.chart.background, strokeColor: base.chart.foreColor });
+        const fillColor = point.has_cheated ? cheated : point.llm_assisted ? llmAssisted : base.chart.background;
+        marks.push({ seriesIndex, dataPointIndex, size: 4, fillColor, strokeColor: base.chart.foreColor });
+      } else if (point.llm_assisted) {
+        marks.push({ seriesIndex, dataPointIndex, size: 5, shape: point.unrated ? 'square' : 'circle', fillColor: llmAssisted, strokeColor: base.chart.background });
       } else if (point.unrated) {
         marks.push({ seriesIndex, dataPointIndex, size: 5, shape: 'square', fillColor: point.best ? CHART_COLORS.best : CHART_COLORS.unrated, strokeColor: base.chart.background });
       } else if (point.best) {

@@ -40,8 +40,8 @@ CREATE TABLE user_solved_questions (
 ) WITHOUT ROWID;
 
 -- Step 3: Copy data
-INSERT INTO contest_results (contest_id, user_slug, rank, score, finish_time, data_region, llm_assisted)
-SELECT contest_id, user_slug, rank, score, finish_time, data_region, COALESCE(llm_assisted, FALSE) FROM contest_results_old;
+INSERT INTO contest_results (contest_id, user_slug, rank, score, finish_time, data_region)
+SELECT contest_id, user_slug, rank, score, finish_time, data_region FROM contest_results_old;
 
 INSERT INTO question (question_id, contest_id, question_number)
 SELECT question_id, contest_id, question_number FROM question_old;

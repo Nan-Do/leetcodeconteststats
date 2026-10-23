@@ -19,7 +19,7 @@ A web application to explore and compare LeetCode contest performance. Search fo
 - **Wrong submissions** — LeetCode never publishes this number, but it charges five minutes of penalty for each one, so the gap between a user's last accepted solve and the finish time it recorded gives it back. Shown per contest in the chart tooltip, averaged on the score card and in the compare column, and a dash where a contest's own timings don't add up
 - **Skipped contests filter** — registering and not turning up still scores a rank near the bottom of the field. Those contests are hidden by default, from the chart and from every figure derived from it; the switch under the chart puts them back, and remembers which way you like it
 - **Unrated contests filter** — LeetCode occasionally leaves a contest unrated: the results stand, but nobody's rating moved. Those are drawn as violet squares and counted like any other contest, and the second switch takes them out of the chart and the figures for a view of the history as the rating saw it
-- **Deranked users** - LeetCode can remove the rank of users before publishing the official results for several reasons including cheating. The app keeps track of these changes.
+- **Deranked users** — LeetCode can remove the rank of users before publishing the official results for several reasons including cheating. The app keeps track of these changes.
 - **LLM-assisted detection** — flags users who finished a contest unusually fast compared with others on the same score, a possible sign of LLM-generated submissions. See [LLM-assisted detection](#llm-assisted-detection)
 - **Head-to-head comparison** — compare two users across shared contests
 - **Autocomplete search** — fast user lookup with region badges

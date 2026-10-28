@@ -1,8 +1,18 @@
 -- Step 1: Rename original table
+ALTER TABLE contest RENAME TO contest_old;
 ALTER TABLE contest_results RENAME TO contest_results_old;
 ALTER TABLE question RENAME TO question_old;
 
 -- Step 2: Create the new tables with only the required fields
+CREATE TABLE contest (
+    contest_id INTEGER PRIMARY KEY,
+    contest_slug TEXT,
+    time INTEGER,
+    num_participants INTEGER,
+    unrated BOOLEAN,
+    UNIQUE(contest_slug)
+);
+
 CREATE TABLE contest_results (
     contest_id INTEGER,
     user_slug TEXT,
@@ -40,6 +50,9 @@ CREATE TABLE user_solved_questions (
 ) WITHOUT ROWID;
 
 -- Step 3: Copy data
+INSERT INTO contest (contest_id, contest_slug, time, num_participants, unrated)
+SELECT contest_id, contest_slug, time, num_participants, unrated FROM contest_old;
+
 INSERT INTO contest_results (contest_id, user_slug, rank, score, finish_time, data_region)
 SELECT contest_id, user_slug, rank, score, finish_time, data_region FROM contest_results_old;
 
@@ -47,6 +60,7 @@ INSERT INTO question (question_id, contest_id, question_number)
 SELECT question_id, contest_id, question_number FROM question_old;
 
 -- Step 4: Drop the old table
+DROP TABLE contest_old;
 DROP TABLE contest_results_old;
 DROP TABLE question_old;
 

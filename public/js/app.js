@@ -24,9 +24,7 @@ function apiUrl(path, params = {}) {
 // either sat out or submitted nothing in.
 const hasAttended = (contest) => contest.score > 0;
 
-// The server marks a contest unrated when the user scored in it and LeetCode's
-// rated history does not list it. Nothing is marked for a CN account, which
-// leetcode.com has no record of.
+// The server sends each contest's unrated flag as the database records it.
 const isRated = (contest) => !contest.unrated;
 
 const SKIP_FILTER_KEY = 'hideSkipped';

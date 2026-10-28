@@ -102,6 +102,7 @@ export async function getUserHistory(userSlug, dataRegion) {
         c.contest_slug,
         c.time,
         c.num_participants,
+        c.unrated,
         cr.rank,
         cr.score,
         cr.contest_score,
@@ -168,9 +169,8 @@ export const hasAttended = (contest) => contest.score > 0;
 
 // LeetCode occasionally leaves a contest unrated -- a broken problem, a leak,
 // an outage during the window -- and the results still stand: everyone who
-// competed has a rank, nobody's rating moved. The database has no idea which
-// ones those were, so the flag is put on by annotateHistory below and is false
-// for everyone LeetCode could not be asked about.
+// competed has a rank, nobody's rating moved. Which ones those were is the
+// contest table's unrated column, read by getUserHistory above.
 export const isRated = (contest) => !contest.unrated;
 
 // The four ways the two switches under the chart can be set. Named so that the
@@ -189,18 +189,11 @@ export const CONTEST_SETS = {
 export function annotateHistory(history, contestRanking) {
   return history.map((contest) => {
     const entry = contestRanking?.entryFor(contest.contest_slug);
-    // Present but flagged as a non-appearance still means LeetCode counted no
-    // rated result for it.
-    const rated = Boolean(entry) && entry.attended !== false;
     return {
       ...contest,
       rating: entry?.rating ?? null,
       // Keep track of the trend direction.
       trend_direction: entry?.trendDirection ?? null,
-      // A contest the user scored in that LeetCode's rated history does not
-      // list was never rated. Without an answer from LeetCode -- a CN account,
-      // or a lookup that failed -- nothing is known to be unrated.
-      unrated: Boolean(contestRanking) && hasAttended(contest) && !rated,
     };
   });
 }
@@ -266,11 +259,7 @@ function foldStats(contests) {
   };
 }
 
-// Every figure the cards show, one block per way the switches can be set. The
-// aggregates used to be a second query of their own, which could not have done
-// this: which contests were rated is LeetCode's answer, not the database's, and
-// a few hundred rows the history already fetched are cheaper to fold than to
-// ask about again.
+// Every figure the cards show, one block per way the switches can be set.
 export function computeStats(history) {
   if (!history.length) return null;
 
